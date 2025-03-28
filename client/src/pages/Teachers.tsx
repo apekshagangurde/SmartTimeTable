@@ -57,11 +57,16 @@ const teacherFormSchema = z.object({
 });
 
 export default function Teachers() {
-  const { teachers, subjects, markTeacherAsUpset, createTeacher } = useTimetable();
+  const { teachers, subjects, markTeacherAsUpset, createTeacher, refetchTeachers } = useTimetable();
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddTeacherDialog, setShowAddTeacherDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  
+  // Make sure we refresh teacher data when component mounts
+  useEffect(() => {
+    refetchTeachers();
+  }, [refetchTeachers]);
 
   // Initialize react-hook-form
   const form = useForm<z.infer<typeof teacherFormSchema>>({
@@ -75,7 +80,7 @@ export default function Teachers() {
   });
 
   // Filter teachers based on search term
-  const filteredTeachers = teachers.filter(
+  const filteredTeachers = (teachers || []).filter(
     (teacher: TeacherType) => {
       // First attempt to filter by teacher name if available
       if (teacher.user?.name && teacher.user.name.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -134,6 +139,9 @@ export default function Teachers() {
       
       // Invalidate queries to update the UI
       queryClient.invalidateQueries({ queryKey: ["/api/teachers"] });
+      
+      // Explicitly refetch teachers
+      await refetchTeachers();
       
       // Close the dialog first before showing the toast
       setShowAddTeacherDialog(false);

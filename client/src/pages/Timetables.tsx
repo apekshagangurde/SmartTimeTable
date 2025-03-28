@@ -139,8 +139,8 @@ export default function Timetables() {
       // Navigate to the edit page for the new timetable
       navigate(`/timetable/${newTimetable.id}`);
       
-    } catch (error) {
-      console.error("Error creating timetable:", error);
+    } catch (err) {
+      console.error("Error creating timetable:", err);
       toast({
         title: "Error",
         description: "Failed to create timetable. Please try again.",
@@ -148,9 +148,7 @@ export default function Timetables() {
       });
       setIsSubmitting(false);
     } finally {
-      if (!error) {
-        setIsSubmitting(false);
-      }
+      setIsSubmitting(false);
     }
   };
 
