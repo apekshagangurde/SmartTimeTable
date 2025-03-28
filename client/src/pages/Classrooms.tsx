@@ -162,7 +162,7 @@ export default function Classrooms() {
             
             <div className="grid gap-2">
               <Label htmlFor="department">Department</Label>
-              <Select>
+              <Select value="">
                 <SelectTrigger id="department">
                   <SelectValue placeholder="Select Department" />
                 </SelectTrigger>

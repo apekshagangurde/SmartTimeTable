@@ -19,7 +19,14 @@ import { Link } from "wouter";
 
 export default function Timetables() {
   const { toast } = useToast();
-  const { departments, divisions, selectedDepartment, setSelectedDepartment } = useTimetable();
+  const { 
+    departments, 
+    divisions, 
+    selectedDepartment, 
+    setSelectedDepartment,
+    selectedDivision,
+    setSelectedDivision 
+  } = useTimetable();
   const [searchTerm, setSearchTerm] = useState("");
 
   // Mock timetable data (in real implementation, this would come from the API)
@@ -111,7 +118,13 @@ export default function Timetables() {
             </div>
             <div>
               <Label htmlFor="division">Division</Label>
-              <Select>
+              <Select 
+                value={selectedDivision?.id.toString() || ""} 
+                onValueChange={(value) => {
+                  const div = divisions.find(d => d.id.toString() === value);
+                  if (div) setSelectedDivision(div);
+                }}
+              >
                 <SelectTrigger id="division">
                   <SelectValue placeholder="Select Division" />
                 </SelectTrigger>
