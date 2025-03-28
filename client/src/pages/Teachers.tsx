@@ -51,7 +51,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const teacherFormSchema = z.object({
   name: z.string().min(3, { message: "Name must be at least 3 characters" }),
   email: z.string().email({ message: "Must be a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
   role: z.string().default("teacher"),
   subjects: z.array(z.string()).optional(),
 });
@@ -69,7 +68,6 @@ export default function Teachers() {
     defaultValues: {
       name: "",
       email: "",
-      password: "",
       role: "teacher",
       subjects: [],
     },
@@ -279,20 +277,6 @@ export default function Teachers() {
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="Enter email address" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="Enter password" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
