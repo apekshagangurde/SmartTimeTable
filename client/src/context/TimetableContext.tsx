@@ -44,6 +44,7 @@ interface TimetableContextType {
   markTeacherAsUpset: (teacherId: number, isUpset: boolean) => Promise<void>;
   assignSubstitute: (slotId: number, newTeacherId: number) => Promise<void>;
   resolveConflict: (conflictId: number) => Promise<void>;
+  createTimetable: (timetable: { divisionId: number, createdBy: number }) => Promise<any>;
   
   // Loading states
   isLoading: boolean;
@@ -254,6 +255,28 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
       });
     },
   });
+  
+  // Create timetable mutation
+  const createTimetableMutation = useMutation({
+    mutationFn: async (timetable: { divisionId: number, createdBy: number }) => {
+      const res = await apiRequest("POST", "/api/timetables", timetable);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/timetables"] });
+      toast({
+        title: "Success",
+        description: "Timetable created successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to create timetable: ${error.message}`,
+      });
+    },
+  });
 
   const isLoading =
     isDepartmentsLoading ||
@@ -335,6 +358,9 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
     },
     resolveConflict: async (conflictId: number) => {
       await resolveConflictMutation.mutateAsync(conflictId);
+    },
+    createTimetable: async (timetable: { divisionId: number, createdBy: number }) => {
+      return await createTimetableMutation.mutateAsync(timetable);
     },
     
     // Loading state

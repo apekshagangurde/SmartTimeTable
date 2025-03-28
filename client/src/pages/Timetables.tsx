@@ -11,23 +11,62 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { PlusCircle, Search, Calendar, ArrowRight, FileEdit, Trash } from "lucide-react";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from "@/components/ui/form";
+import { PlusCircle, Search, Calendar, ArrowRight, FileEdit, Trash, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useTimetable } from "@/context/TimetableContext";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+// Schema for creating a new timetable
+const createTimetableSchema = z.object({
+  divisionId: z.string().min(1, { message: "Please select a division" }),
+  createdBy: z.number().default(1), // Default to admin user for now
+});
 
 export default function Timetables() {
   const { toast } = useToast();
+  const [location, navigate] = useLocation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { 
     departments, 
     divisions, 
     selectedDepartment, 
     setSelectedDepartment,
     selectedDivision,
-    setSelectedDivision 
+    setSelectedDivision,
+    createTimetable
   } = useTimetable();
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Initialize form for creating timetable
+  const form = useForm<z.infer<typeof createTimetableSchema>>({
+    resolver: zodResolver(createTimetableSchema),
+    defaultValues: {
+      divisionId: "",
+      createdBy: 1,
+    },
+  });
 
   // Mock timetable data (in real implementation, this would come from the API)
   const timetables = [
@@ -66,12 +105,55 @@ export default function Timetables() {
       timetable.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
       timetable.division.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  // Submit handler for creating a new timetable
+  const onSubmit = async (data: z.infer<typeof createTimetableSchema>) => {
+    if (!selectedDepartment) {
+      toast({
+        title: "Error",
+        description: "Please select a department first",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      // Convert divisionId to number
+      const timetableData = {
+        divisionId: parseInt(data.divisionId),
+        createdBy: data.createdBy,
+      };
+      
+      // Create timetable
+      const newTimetable = await createTimetable(timetableData);
+      
+      toast({
+        title: "Success",
+        description: "Timetable created successfully. You can now add classes.",
+      });
+      
+      // Navigate to the edit page for the new timetable
+      navigate(`/timetables/${newTimetable.id}/edit`);
+      
+    } catch (error) {
+      console.error("Error creating timetable:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create timetable. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+      setShowCreateDialog(false);
+    }
+  };
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Timetables</h1>
-        <Button>
+        <Button onClick={() => setShowCreateDialog(true)}>
           <PlusCircle className="mr-2 h-4 w-4" /> Create New Timetable
         </Button>
       </div>
@@ -196,6 +278,78 @@ export default function Timetables() {
           </Table>
         </CardContent>
       </Card>
+      
+      {/* Create Timetable Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Timetable</DialogTitle>
+            <DialogDescription>
+              Create a new timetable for a specific division. You'll be able to add classes after creation.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="divisionId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Division</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={!selectedDepartment}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select division" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {divisions
+                          .filter(div => div.departmentId === selectedDepartment?.id)
+                          .map(division => (
+                            <SelectItem key={division.id} value={division.id.toString()}>
+                              {division.name} ({selectedDepartment?.shortName})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      {!selectedDepartment ? 
+                        "Please select a department first" : 
+                        "Select the division for which you want to create a timetable"
+                      }
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setShowCreateDialog(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || !selectedDepartment || divisions.filter(d => d.departmentId === selectedDepartment?.id).length === 0}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Timetable"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
