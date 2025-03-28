@@ -119,16 +119,21 @@ export default function Timetables() {
             <div>
               <Label htmlFor="division">Division</Label>
               <Select 
-                value={selectedDivision?.id.toString() || ""} 
+                value={selectedDivision?.id.toString() || "all"} 
                 onValueChange={(value) => {
-                  const div = divisions.find(d => d.id.toString() === value);
-                  if (div) setSelectedDivision(div);
+                  if (value === "all") {
+                    setSelectedDivision(null);
+                  } else {
+                    const div = divisions.find(d => d.id.toString() === value);
+                    if (div) setSelectedDivision(div);
+                  }
                 }}
               >
                 <SelectTrigger id="division">
                   <SelectValue placeholder="Select Division" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Divisions</SelectItem>
                   {divisions.map((div) => (
                     <SelectItem key={div.id} value={div.id.toString()}>
                       {div.name}

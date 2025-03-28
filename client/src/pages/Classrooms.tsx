@@ -74,18 +74,21 @@ export default function Classrooms() {
             <div>
               <Label htmlFor="department">Department</Label>
               <Select 
-                value={selectedDepartment?.id.toString() || ""} 
+                value={selectedDepartment?.id.toString() || "all"} 
                 onValueChange={(value) => {
-                  const dept = departments.find(d => d.id.toString() === value);
-                  if (dept) setSelectedDepartment(dept);
-                  else setSelectedDepartment(null);
+                  if (value === "all") {
+                    setSelectedDepartment(null);
+                  } else {
+                    const dept = departments.find(d => d.id.toString() === value);
+                    if (dept) setSelectedDepartment(dept);
+                  }
                 }}
               >
                 <SelectTrigger id="department">
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Departments</SelectItem>
+                  <SelectItem value="all">All Departments</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept.id} value={dept.id.toString()}>
                       {dept.name}
@@ -162,11 +165,12 @@ export default function Classrooms() {
             
             <div className="grid gap-2">
               <Label htmlFor="department">Department</Label>
-              <Select value="">
+              <Select value="default">
                 <SelectTrigger id="department">
                   <SelectValue placeholder="Select Department" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="default" disabled>Select Department</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept.id} value={dept.id.toString()}>
                       {dept.name}
