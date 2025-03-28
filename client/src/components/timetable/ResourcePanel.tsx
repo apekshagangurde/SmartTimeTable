@@ -26,7 +26,7 @@ function TeacherItem({ teacher }: { teacher: TeacherType }) {
     item: { 
       id: teacher.id, 
       type: 'teacher', 
-      name: `Teacher ${teacher.id}`  // We don't have user object linked directly
+      name: teacher.name || `Teacher ${teacher.id}`
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
@@ -34,6 +34,8 @@ function TeacherItem({ teacher }: { teacher: TeacherType }) {
   });
   
   const isUpset = teacher.isUpset;
+  // Use teacher.name if available, otherwise fallback to Teacher ID
+  const teacherDisplayName = teacher.name || `Teacher ${teacher.id}`;
   
   return (
     <div
@@ -44,7 +46,7 @@ function TeacherItem({ teacher }: { teacher: TeacherType }) {
     >
       <UserCircle2 className={`h-5 w-5 mr-2 ${isUpset ? "text-amber-500" : "text-blue-500"}`} />
       <div className="flex-1">
-        <div className="font-medium text-sm">{`Teacher ${teacher.id}`}</div>
+        <div className="font-medium text-sm">{teacherDisplayName}</div>
         {isUpset && (
           <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200">
             Upset
@@ -121,10 +123,10 @@ export default function ResourcePanel({ teachers, subjects, classrooms }: Resour
   const [classroomSearch, setClassroomSearch] = useState("");
   
   // Filter resources based on search terms - check for null/undefined
-  const filteredTeachers = teachers?.filter(teacher => 
-    // Search by teacher ID since we don't have user property directly
-    `Teacher ${teacher.id}`.toLowerCase().includes(teacherSearch.toLowerCase())
-  ) || [];
+  const filteredTeachers = teachers?.filter(teacher => {
+    const teacherName = teacher.name || `Teacher ${teacher.id}`;
+    return teacherName.toLowerCase().includes(teacherSearch.toLowerCase());
+  }) || [];
   
   const filteredSubjects = subjects?.filter(subject => 
     subject.name?.toLowerCase().includes(subjectSearch.toLowerCase()) ||
@@ -135,6 +137,9 @@ export default function ResourcePanel({ teachers, subjects, classrooms }: Resour
     classroom.name?.toLowerCase().includes(classroomSearch.toLowerCase())
   ) || [];
   
+  // Add a log to check if our component is rendering
+  console.log('ResourcePanel rendering with teachers:', filteredTeachers);
+
   return (
     <Card>
       <Tabs defaultValue="teachers">

@@ -87,7 +87,7 @@ export default function ClassItem({ slot, onUpdate, onDelete, readOnly = false }
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
           <h4 className="font-medium text-sm truncate">
-            {`Subject ID: ${slot.subjectId}`}
+            {slot.subject?.name || `Subject ${slot.subjectId}`}
           </h4>
           <p className="text-xs text-muted-foreground flex items-center">
             <Clock className="h-3 w-3 mr-1" />
@@ -121,8 +121,8 @@ export default function ClassItem({ slot, onUpdate, onDelete, readOnly = false }
         <div className="mt-2 space-y-1 text-xs">
           <div className="flex items-center">
             <User className="h-3 w-3 mr-1" />
-            <span className="font-medium mr-1">Teacher ID:</span>
-            <span>{slot.teacherId}</span>
+            <span className="font-medium mr-1">Teacher:</span>
+            <span>{slot.teacher?.name || `Teacher ${slot.teacherId}`}</span>
           </div>
           <div className="flex items-center">
             <BookOpen className="h-3 w-3 mr-1" />
@@ -131,8 +131,8 @@ export default function ClassItem({ slot, onUpdate, onDelete, readOnly = false }
           </div>
           <div className="flex items-center">
             <Home className="h-3 w-3 mr-1" />
-            <span className="font-medium mr-1">Room ID:</span>
-            <span>{slot.classroomId}</span>
+            <span className="font-medium mr-1">Room:</span>
+            <span>{slot.classroom?.name || `Room ${slot.classroomId}`}</span>
           </div>
         </div>
       )}

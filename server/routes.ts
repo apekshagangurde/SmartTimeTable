@@ -17,6 +17,7 @@ import {
   insertConflictSchema
 } from "@shared/schema";
 import { format } from 'date-fns';
+import { WebSocketServer, WebSocket } from 'ws';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes

@@ -58,16 +58,23 @@ export default function TimetableGrid({
   
   // Handle slot dropping
   const handleDrop = (item: any, day: string, hour: number) => {
+    const dayTyped = day as WeekdayType;
+    const startTimeFormatted = String(hour).padStart(2, '0') + ":00";
+    const endTimeFormatted = String(hour + 1).padStart(2, '0') + ":00";
+    
     if (item.id && item.type === 'slot') {
       // Update existing slot - cast day to WeekdayType
       onUpdate(item.id, {
-        day: day as WeekdayType,
-        startTime: String(hour).padStart(2, '0') + ":00",
-        endTime: String(hour + 1).padStart(2, '0') + ":00"
+        day: dayTyped,
+        startTime: startTimeFormatted,
+        endTime: endTimeFormatted
       });
-    } else {
+    } else if (item.type === 'teacher' || item.type === 'subject' || item.type === 'classroom') {
       // Create new slot with the dragged resource
-      onCreateEmptySlot(day as WeekdayType, hour);
+      onCreateEmptySlot(dayTyped, hour);
+    } else {
+      // Default case - just create empty slot
+      onCreateEmptySlot(dayTyped, hour);
     }
   };
   
@@ -94,7 +101,7 @@ export default function TimetableGrid({
                 
                 // Set up drop target for the cell if not in readOnly mode
                 const [{ isOver, canDrop }, drop] = useDrop({
-                  accept: [ItemTypes.CLASS, ItemTypes.TEACHER, ItemTypes.SUBJECT, ItemTypes.CLASSROOM],
+                  accept: [ItemTypes.SLOT, ItemTypes.TEACHER, ItemTypes.SUBJECT, ItemTypes.CLASSROOM],
                   drop: (item: any) => !readOnly && handleDrop(item, day, hour),
                   canDrop: () => !readOnly,
                   collect: (monitor) => ({

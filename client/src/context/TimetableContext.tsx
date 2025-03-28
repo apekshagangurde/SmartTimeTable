@@ -50,6 +50,7 @@ interface TimetableContextType {
   refetchTeachers: () => Promise<void>;
   refetchClassrooms: () => Promise<void>;
   refetchSubjects: () => Promise<void>;
+  refetchSlots: () => Promise<void>;
   
   // Loading states
   isLoading: boolean;
@@ -93,6 +94,7 @@ export const TimetableContext = createContext<TimetableContextType>({
   refetchTeachers: async () => {},
   refetchClassrooms: async () => {},
   refetchSubjects: async () => {},
+  refetchSlots: async () => {},
   
   // Loading states
   isLoading: false
@@ -430,6 +432,9 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
     },
     refetchSubjects: async () => {
       await queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
+    },
+    refetchSlots: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/slots"] });
     },
     
     // Loading state
