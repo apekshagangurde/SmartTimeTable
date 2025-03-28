@@ -220,7 +220,9 @@ export default function Teachers() {
               ) : (
                 filteredTeachers.map((teacher: TeacherType) => (
                   <TableRow key={teacher.id}>
-                    <TableCell className="font-medium">{teacher.user?.name || `Teacher ${teacher.id}`}</TableCell>
+                    <TableCell className="font-medium">
+                      {teacher.user?.name || teacher.name || `Teacher ${teacher.id}`}
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {teacher.subjects && teacher.subjects.length > 0 ? (
@@ -253,13 +255,36 @@ export default function Teachers() {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => toast({
+                            title: "Schedule View",
+                            description: `Viewing schedule for ${teacher.user?.name || teacher.name || `Teacher ${teacher.id}`}`,
+                          })}
+                        >
                           <Calendar className="h-4 w-4 mr-1" /> Schedule
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => toast({
+                            title: "Edit Teacher",
+                            description: "Teacher edit functionality will be implemented soon.",
+                          })}
+                        >
                           <Edit className="h-4 w-4 mr-1" /> Edit
                         </Button>
-                        <Button variant="outline" size="sm" className="text-red-500">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-red-500"
+                          onClick={() => toast({
+                            title: "Delete Teacher",
+                            description: "Teacher deletion functionality will be implemented soon.",
+                            variant: "destructive"
+                          })}
+                        >
                           <Trash className="h-4 w-4" />
                         </Button>
                       </div>

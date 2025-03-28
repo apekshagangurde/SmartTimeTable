@@ -6,6 +6,8 @@ export type DivisionType = Division;
 export type TeacherType = Teacher & {
   user?: User;
   subjects?: Subject[];
+  name?: string; // For CSV-stored teachers that may have name directly on them
+  email?: string; // For CSV-stored teachers that may have email directly on them
 };
 export type SubjectType = Subject;
 export type ClassroomType = Classroom;

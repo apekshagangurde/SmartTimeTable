@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTimetable } from "@/context/TimetableContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,11 @@ export default function Classrooms() {
   const [capacity, setCapacity] = useState<string>("30");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  
+  // Make sure we refresh classroom data when component mounts
+  useEffect(() => {
+    refetchClassrooms();
+  }, [refetchClassrooms]);
 
   // Handle classroom form submission
   const handleAddClassroom = async () => {
@@ -80,9 +85,7 @@ export default function Classrooms() {
         setShowAddClassroomDialog(false);
         
         // Refresh classrooms list
-        if (refetchClassrooms) {
-          refetchClassrooms();
-        }
+        await refetchClassrooms();
       }
     } catch (error) {
       toast({
@@ -189,13 +192,36 @@ export default function Classrooms() {
                     <TableCell>{classroom.capacity} seats</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => toast({
+                            title: "Schedule View",
+                            description: `Viewing schedule for ${classroom.name}`,
+                          })}
+                        >
                           <Calendar className="h-4 w-4 mr-1" /> View Schedule
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => toast({
+                            title: "Edit Classroom",
+                            description: "Classroom edit functionality will be implemented soon.",
+                          })}
+                        >
                           <Edit className="h-4 w-4 mr-1" /> Edit
                         </Button>
-                        <Button variant="outline" size="sm" className="text-red-500">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-red-500"
+                          onClick={() => toast({
+                            title: "Delete Classroom",
+                            description: "Classroom deletion functionality will be implemented soon.",
+                            variant: "destructive"
+                          })}
+                        >
                           <Trash className="h-4 w-4" />
                         </Button>
                       </div>
