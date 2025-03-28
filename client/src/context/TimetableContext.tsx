@@ -40,6 +40,7 @@ interface TimetableContextType {
   createSlot: (slot: Partial<SlotType>) => Promise<void>;
   updateSlot: (id: number, slot: Partial<SlotType>) => Promise<void>;
   deleteSlot: (id: number) => Promise<void>;
+  createTeacher: (teacher: { userId: number, isUpset: boolean }) => Promise<void>;
   markTeacherAsUpset: (teacherId: number, isUpset: boolean) => Promise<void>;
   assignSubstitute: (slotId: number, newTeacherId: number) => Promise<void>;
   resolveConflict: (conflictId: number) => Promise<void>;
@@ -162,6 +163,28 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
         variant: "destructive",
         title: "Error",
         description: `Failed to delete slot: ${error.message}`,
+      });
+    },
+  });
+
+  // Create teacher mutation
+  const createTeacherMutation = useMutation({
+    mutationFn: async (teacher: { userId: number, isUpset: boolean }) => {
+      const res = await apiRequest("POST", "/api/teachers", teacher);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/teachers"] });
+      toast({
+        title: "Success",
+        description: "Teacher created successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to create teacher: ${error.message}`,
       });
     },
   });
@@ -300,6 +323,9 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
     },
     deleteSlot: async (id: number) => {
       await deleteSlotMutation.mutateAsync(id);
+    },
+    createTeacher: async (teacher: { userId: number, isUpset: boolean }) => {
+      await createTeacherMutation.mutateAsync(teacher);
     },
     markTeacherAsUpset: async (teacherId: number, isUpset: boolean) => {
       await markTeacherAsUpsetMutation.mutateAsync({ teacherId, isUpset });

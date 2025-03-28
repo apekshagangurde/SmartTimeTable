@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useTimetable } from "@/context/TimetableContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,24 +23,57 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from "@/components/ui/form";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { 
-  PlusCircle, 
   Search, 
   CheckCircle, 
   Calendar, 
   Edit, 
   Trash,
   XCircle,
-  UserPlus
+  UserPlus,
+  Loader2
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// Form schema for adding a new teacher
+const teacherFormSchema = z.object({
+  name: z.string().min(3, { message: "Name must be at least 3 characters" }),
+  email: z.string().email({ message: "Must be a valid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  role: z.string().default("teacher"),
+  subjects: z.array(z.string()).optional(),
+});
 
 export default function Teachers() {
-  const { teachers, subjects, markTeacherAsUpset } = useTimetable();
+  const { teachers, subjects, markTeacherAsUpset, createTeacher } = useTimetable();
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddTeacherDialog, setShowAddTeacherDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  // Initialize react-hook-form
+  const form = useForm<z.infer<typeof teacherFormSchema>>({
+    resolver: zodResolver(teacherFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      role: "teacher",
+      subjects: [],
+    },
+  });
 
   // Filter teachers based on search term
   const filteredTeachers = teachers.filter(
@@ -48,6 +84,12 @@ export default function Teachers() {
       )
   );
 
+  // Format subjects for multi-select
+  const subjectOptions = subjects.map(subject => ({
+    value: subject.id.toString(),
+    label: subject.name
+  }));
+
   const handleSetTeacherUpset = async (teacherId: number, isUpset: boolean) => {
     try {
       await markTeacherAsUpset(teacherId, isUpset);
@@ -55,6 +97,59 @@ export default function Teachers() {
       console.error("Failed to update teacher status:", error);
     }
   };
+
+  const onSubmit = async (data: z.infer<typeof teacherFormSchema>) => {
+    setIsSubmitting(true);
+    try {
+      // First create a user
+      const userResponse = await apiRequest(
+        "POST",
+        "/api/users",
+        {
+          username: data.email.split('@')[0],
+          password: data.password,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+        }
+      );
+      
+      const userData = await userResponse.json();
+      
+      // Then create a teacher linked to that user
+      await createTeacher({
+        userId: userData.id,
+        isUpset: false,
+      });
+      
+      // Invalidate queries to update the UI
+      queryClient.invalidateQueries({ queryKey: ["/api/teachers"] });
+      
+      toast({
+        title: "Teacher added successfully",
+        description: `${data.name} has been added as a teacher.`,
+      });
+      
+      setShowAddTeacherDialog(false);
+      form.reset();
+    } catch (error) {
+      console.error("Error adding teacher:", error);
+      toast({
+        title: "Failed to add teacher",
+        description: "There was an error adding the teacher. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!showAddTeacherDialog) {
+      form.reset();
+    }
+  }, [showAddTeacherDialog, form]);
 
   return (
     <div>
@@ -160,40 +255,95 @@ export default function Teachers() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" placeholder="Enter teacher's full name" />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input id="email" type="email" placeholder="Enter email address" />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="subjects">Subjects</Label>
-              <select
-                id="subjects"
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
-                multiple
-              >
-                {subjects.map((subject) => (
-                  <option key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-muted-foreground">Hold Ctrl to select multiple subjects</p>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddTeacherDialog(false)}>
-              Cancel
-            </Button>
-            <Button>Add Teacher</Button>
-          </DialogFooter>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter teacher's full name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="Enter email address" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Enter password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="subjects"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subjects (Optional)</FormLabel>
+                    <Select>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select subjects" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {subjects.map(subject => (
+                          <SelectItem key={subject.id} value={subject.id.toString()}>
+                            {subject.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      The subjects this teacher can teach
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setShowAddTeacherDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    "Add Teacher"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

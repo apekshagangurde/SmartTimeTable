@@ -168,6 +168,21 @@ export class MemStorage implements IStorage {
       shortName: "CSE"
     });
 
+    const csAndDesignDepartment = await this.createDepartment({
+      name: "Computer Science and Design",
+      shortName: "CSD"
+    });
+
+    const aiDepartment = await this.createDepartment({
+      name: "Artificial Intelligence Engineering",
+      shortName: "AIE"
+    });
+
+    const dataSciDepartment = await this.createDepartment({
+      name: "Data Science Engineering",
+      shortName: "DSE"
+    });
+
     const itDepartment = await this.createDepartment({
       name: "Information Technology",
       shortName: "IT"
@@ -176,6 +191,11 @@ export class MemStorage implements IStorage {
     const civilDepartment = await this.createDepartment({
       name: "Civil Engineering",
       shortName: "Civil"
+    });
+
+    const electronicsDepartment = await this.createDepartment({
+      name: "Electronics & Telecommunication",
+      shortName: "E&TC"
     });
 
     // Add divisions
