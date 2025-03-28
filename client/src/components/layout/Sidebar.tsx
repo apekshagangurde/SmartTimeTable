@@ -66,18 +66,16 @@ export default function Sidebar({ isOpen }: SidebarProps) {
                 const isActive = location === item.path;
                 return (
                   <li key={item.name}>
-                    <Link href={item.path}>
-                      <a
-                        className={cn(
-                          "flex items-center px-2 py-2 rounded-md",
-                          isActive
-                            ? "text-primary bg-primary/10"
-                            : "text-neutral-dark hover:bg-neutral-lightest"
-                        )}
-                      >
-                        <span className="w-5 text-center mr-2">{item.icon}</span>
-                        <span>{item.name}</span>
-                      </a>
+                    <Link href={item.path} 
+                      className={cn(
+                        "flex items-center px-2 py-2 rounded-md",
+                        isActive
+                          ? "text-primary bg-primary/10"
+                          : "text-neutral-dark hover:bg-neutral-lightest"
+                      )}
+                    >
+                      <span className="w-5 text-center mr-2">{item.icon}</span>
+                      <span>{item.name}</span>
                     </Link>
                   </li>
                 );

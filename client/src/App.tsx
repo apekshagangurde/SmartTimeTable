@@ -19,6 +19,12 @@ function Router() {
       <Route path="/teachers" component={Teachers} />
       <Route path="/classrooms" component={Classrooms} />
       <Route path="/departments" component={Departments} />
+      <Route path="/substitutions" component={NotFound} />
+      <Route path="/history" component={NotFound} />
+      <Route path="/notifications" component={NotFound} />
+      <Route path="/analytics" component={NotFound} />
+      <Route path="/workload" component={NotFound} />
+      <Route path="/utilization" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );
