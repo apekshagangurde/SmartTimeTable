@@ -128,13 +128,16 @@ export default function Timetables() {
       // Create timetable
       const newTimetable = await createTimetable(timetableData);
       
+      // Close dialog and show success toast
+      setShowCreateDialog(false);
+      
       toast({
         title: "Success",
         description: "Timetable created successfully. You can now add classes.",
       });
       
       // Navigate to the edit page for the new timetable
-      navigate(`/timetables/${newTimetable.id}/edit`);
+      navigate(`/timetable/${newTimetable.id}`);
       
     } catch (error) {
       console.error("Error creating timetable:", error);
@@ -143,9 +146,11 @@ export default function Timetables() {
         description: "Failed to create timetable. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsSubmitting(false);
-      setShowCreateDialog(false);
+    } finally {
+      if (!error) {
+        setIsSubmitting(false);
+      }
     }
   };
 

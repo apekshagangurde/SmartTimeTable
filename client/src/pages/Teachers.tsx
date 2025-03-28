@@ -135,13 +135,17 @@ export default function Teachers() {
       // Invalidate queries to update the UI
       queryClient.invalidateQueries({ queryKey: ["/api/teachers"] });
       
-      toast({
-        title: "Teacher added successfully",
-        description: `${data.name} has been added as a teacher.`,
-      });
-      
+      // Close the dialog first before showing the toast
       setShowAddTeacherDialog(false);
       form.reset();
+      
+      // Show toast after dialog is closed
+      setTimeout(() => {
+        toast({
+          title: "Teacher added successfully",
+          description: `${data.name} has been added as a teacher.`,
+        });
+      }, 100);
     } catch (error) {
       console.error("Error adding teacher:", error);
       toast({

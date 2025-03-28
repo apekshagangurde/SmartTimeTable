@@ -305,7 +305,15 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
   // Create timetable mutation
   const createTimetableMutation = useMutation({
     mutationFn: async (timetable: { divisionId: number, createdBy: number }) => {
-      const res = await apiRequest("POST", "/api/timetables", timetable);
+      // Add current date as created/updated dates
+      const now = new Date().toISOString();
+      const timetableWithDates = {
+        ...timetable,
+        createdAt: now,
+        updatedAt: now,
+      };
+      
+      const res = await apiRequest("POST", "/api/timetables", timetableWithDates);
       return res.json();
     },
     onSuccess: () => {
@@ -316,6 +324,7 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
       });
     },
     onError: (error) => {
+      console.error("Error creating timetable:", error);
       toast({
         variant: "destructive",
         title: "Error",
