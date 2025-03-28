@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { csvStorage } from "./csv-storage";
 import { z } from "zod";
 import { 
   insertDepartmentSchema, 
@@ -59,8 +60,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Departments
   app.get("/api/departments", async (req, res) => {
     try {
-      const departments = await storage.getDepartments();
-      res.json(departments);
+      // Combine departments from both storage systems
+      const memDepartments = await storage.getDepartments();
+      const csvDepartments = csvStorage.getDepartments();
+      
+      // Filter out duplicates by ID (CSV storage takes precedence)
+      const csvIds = new Set(csvDepartments.map(d => d.id));
+      const combinedDepartments = [
+        ...memDepartments.filter(d => !csvIds.has(d.id)),
+        ...csvDepartments
+      ];
+      
+      res.json(combinedDepartments);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch departments" });
     }
@@ -69,10 +80,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/departments/:id", async (req, res) => {
     try {
       const departmentId = parseInt(req.params.id);
-      const department = await storage.getDepartment(departmentId);
+      
+      // Try to get from CSV first, then fall back to memory storage
+      let department = csvStorage.getDepartment(departmentId);
+      if (!department) {
+        department = await storage.getDepartment(departmentId);
+      }
+      
       if (!department) {
         return res.status(404).json({ message: "Department not found" });
       }
+      
       res.json(department);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch department" });
@@ -82,7 +100,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/departments", async (req, res) => {
     try {
       const departmentData = insertDepartmentSchema.parse(req.body);
-      const newDepartment = await storage.createDepartment(departmentData);
+      
+      // Store in CSV instead of memory
+      const newDepartment = csvStorage.createDepartment(departmentData);
+      
+      // Also update in-memory for compatibility with other operations
+      await storage.createDepartment(departmentData);
+      
       res.status(201).json(newDepartment);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -167,8 +191,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Teachers
   app.get("/api/teachers", async (req, res) => {
     try {
-      const teachers = await storage.getTeachers();
-      res.json(teachers);
+      // Combine teachers from both storage systems
+      const memTeachers = await storage.getTeachers();
+      const csvTeachers = csvStorage.getTeachers();
+      
+      // Filter out duplicates by ID (CSV storage takes precedence)
+      const csvIds = new Set(csvTeachers.map(t => t.id));
+      const combinedTeachers = [
+        ...memTeachers.filter(t => !csvIds.has(t.id)),
+        ...csvTeachers
+      ];
+      
+      res.json(combinedTeachers);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch teachers" });
     }
@@ -177,7 +211,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/teachers", async (req, res) => {
     try {
       const teacherData = insertTeacherSchema.parse(req.body);
-      const newTeacher = await storage.createTeacher(teacherData);
+      
+      // First create the user if needed
+      let userId = teacherData.userId;
+      const user = await storage.getUser(userId);
+      
+      // Store the teacher in CSV
+      const newTeacher = csvStorage.createTeacher({
+        ...teacherData,
+        name: user?.name || 'Unknown', 
+        email: user?.email || 'unknown@example.com'
+      });
+      
+      // Also store in memory for compatibility with other operations
+      await storage.createTeacher(teacherData);
+      
       res.status(201).json(newTeacher);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -196,7 +244,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "isUpset must be a boolean" });
       }
       
-      const updatedTeacher = await storage.updateTeacherUpsetStatus(teacherId, isUpset);
+      // Update in both storage systems
+      const csvTeacher = csvStorage.updateTeacherUpsetStatus(teacherId, isUpset);
+      const memTeacher = await storage.updateTeacherUpsetStatus(teacherId, isUpset);
+      
+      // Prefer CSV data if available
+      const updatedTeacher = csvTeacher || memTeacher;
+      
       if (!updatedTeacher) {
         return res.status(404).json({ message: "Teacher not found" });
       }

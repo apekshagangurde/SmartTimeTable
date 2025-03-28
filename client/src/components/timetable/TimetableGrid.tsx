@@ -49,11 +49,74 @@ export default function TimetableGrid({ viewMode }: TimetableGridProps) {
       const dropPosition = monitor.getClientOffset();
       if (!dropPosition || !gridRef.current) return;
       
-      // In a real implementation, calculate grid position and create a new slot
-      toast({
-        title: "Item dropped",
-        description: `Dropped ${item.type} at position (${dropPosition.x}, ${dropPosition.y})`,
-      });
+      const gridRect = gridRef.current.getBoundingClientRect();
+      const relativeX = dropPosition.x - gridRect.left;
+      const relativeY = dropPosition.y - gridRect.top;
+      
+      // Calculate which day column was dropped on
+      const dayColumnWidth = gridRect.width / (viewMode === "weekly" ? weekdays.length + 1 : 2); // +1 for time column
+      const dayIndex = Math.floor(relativeX / dayColumnWidth) - 1; // -1 to account for time column
+      
+      if (dayIndex < 0 || dayIndex >= (viewMode === "weekly" ? weekdays.length : 1)) {
+        // Dropped on time column or outside grid
+        return;
+      }
+      
+      // Calculate time based on y position
+      const totalHours = endHour - startHour + 1;
+      const hourHeight = (gridRect.height - 12) / totalHours; // 12px for header
+      const hour = Math.floor(relativeY / hourHeight);
+      const dropHour = startHour + hour;
+      
+      // Ensure time is within range
+      if (dropHour < startHour || dropHour > endHour) {
+        return;
+      }
+      
+      // Format start and end times (assume 1-hour slots for simplicity)
+      const startTime = `${String(dropHour).padStart(2, '0')}:00`;
+      const endTime = `${String(dropHour + 1).padStart(2, '0')}:00`;
+      
+      // Get day
+      const day = viewMode === "weekly" ? weekdays[dayIndex] : selectedDay;
+      
+      // Handle different item types
+      if (item.type === "teacher") {
+        // Teacher was dropped: create a placeholder slot
+        toast({
+          title: "Creating new slot",
+          description: `Teacher: ${item.data.user?.name}, Day: ${day}, Time: ${startTime} - ${endTime}`,
+        });
+        
+        // In a real implementation, create slot with form dialog first
+        createSlot({
+          day,
+          startTime,
+          endTime,
+          teacherId: item.data.id,
+          classroomId: 1, // Default classroom
+          subjectId: 1,   // Default subject
+          timetableId: 1, // Current timetable
+          type: "Lecture"
+        });
+      } else if (item.type === "classroom") {
+        toast({
+          title: "Classroom selected",
+          description: `Classroom ${item.data.name} selected for ${day} at ${startTime}`,
+        });
+      } else if (item.type === "subject") {
+        toast({
+          title: "Subject selected",
+          description: `Subject ${item.data.name} selected for ${day} at ${startTime}`,
+        });
+      } else if (item.type === "slot") {
+        // Slot was moved
+        updateSlot(item.data.id, {
+          day,
+          startTime,
+          endTime
+        });
+      }
     },
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),

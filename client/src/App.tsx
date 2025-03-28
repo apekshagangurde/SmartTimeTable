@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
@@ -14,7 +15,6 @@ import Workload from "@/pages/Workload";
 import Utilization from "@/pages/Utilization";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
-import { useState } from "react";
 import { TimetableProvider } from "@/context/TimetableContext";
 
 function Router() {
