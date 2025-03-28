@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import TimetableGrid from "@/components/timetable/TimetableGrid";
 import ResourcePanel from "@/components/timetable/ResourcePanel";
 import ConflictPanel from "@/components/timetable/ConflictPanel";
+import { SlotType, WeekdayType } from "@/types/timetable";
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import {
@@ -62,8 +63,8 @@ export default function TimetableEditor({ id, readOnly = false }: TimetableEdito
   } = useTimetable();
   
   // Helper method to get the day name from number
-  const getDayName = (dayNumber: number) => {
-    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const getDayName = (dayNumber: number): WeekdayType => {
+    const days: WeekdayType[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     return days[dayNumber] || "Monday";
   };
   
@@ -73,7 +74,7 @@ export default function TimetableEditor({ id, readOnly = false }: TimetableEdito
   };
   
   // Create an empty slot for drag and drop
-  const createEmptySlot = (day: string, hour: number) => {
+  const createEmptySlot = (day: WeekdayType, hour: number) => {
     if (!selectedDivision) {
       toast({
         title: "Error",
@@ -83,11 +84,8 @@ export default function TimetableEditor({ id, readOnly = false }: TimetableEdito
       return;
     }
     
-    // Cast day to WeekdayType
-    const weekDay = day as "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
-    
     const newSlot = {
-      day: weekDay,
+      day: day,
       startTime: formatTime(hour),
       endTime: formatTime(hour + 1),
       timetableId: parseInt(id),

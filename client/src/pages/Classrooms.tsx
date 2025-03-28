@@ -30,11 +30,71 @@ import {
   Trash,
   DoorOpen
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Classrooms() {
-  const { classrooms, departments, selectedDepartment, setSelectedDepartment } = useTimetable();
+  const { classrooms, departments, selectedDepartment, setSelectedDepartment, refetchClassrooms } = useTimetable();
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddClassroomDialog, setShowAddClassroomDialog] = useState(false);
+  const [newClassroomName, setNewClassroomName] = useState("");
+  const [selectedDeptId, setSelectedDeptId] = useState<string>("default");
+  const [capacity, setCapacity] = useState<string>("30");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  // Handle classroom form submission
+  const handleAddClassroom = async () => {
+    if (!newClassroomName.trim() || selectedDeptId === "default" || !capacity.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      const response = await apiRequest(
+        "POST", 
+        '/api/classrooms', 
+        {
+          name: newClassroomName.trim(),
+          departmentId: parseInt(selectedDeptId),
+          capacity: parseInt(capacity)
+        }
+      );
+      
+      if (response) {
+        toast({
+          title: "Classroom Added",
+          description: `${newClassroomName} has been added successfully`
+        });
+        
+        // Reset form
+        setNewClassroomName("");
+        setSelectedDeptId("default");
+        setCapacity("30");
+        setShowAddClassroomDialog(false);
+        
+        // Refresh classrooms list
+        if (refetchClassrooms) {
+          refetchClassrooms();
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add classroom. Please try again.",
+        variant: "destructive"
+      });
+      console.error("Failed to add classroom:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Filter classrooms based on search term and selected department
   const filteredClassrooms = classrooms.filter(
@@ -160,12 +220,20 @@ export default function Classrooms() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="classroomName">Classroom Name</Label>
-              <Input id="classroomName" placeholder="e.g., CS Lab 302" />
+              <Input 
+                id="classroomName" 
+                placeholder="e.g., CS Lab 302" 
+                value={newClassroomName}
+                onChange={(e) => setNewClassroomName(e.target.value)}
+              />
             </div>
             
             <div className="grid gap-2">
               <Label htmlFor="department">Department</Label>
-              <Select value="default">
+              <Select 
+                value={selectedDeptId}
+                onValueChange={setSelectedDeptId}
+              >
                 <SelectTrigger id="department">
                   <SelectValue placeholder="Select Department" />
                 </SelectTrigger>
@@ -182,7 +250,14 @@ export default function Classrooms() {
             
             <div className="grid gap-2">
               <Label htmlFor="capacity">Capacity</Label>
-              <Input id="capacity" type="number" placeholder="Enter capacity" min="1" />
+              <Input 
+                id="capacity" 
+                type="number" 
+                placeholder="Enter capacity" 
+                min="1" 
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+              />
             </div>
           </div>
           
@@ -190,7 +265,12 @@ export default function Classrooms() {
             <Button variant="outline" onClick={() => setShowAddClassroomDialog(false)}>
               Cancel
             </Button>
-            <Button>Add Classroom</Button>
+            <Button 
+              onClick={handleAddClassroom}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Adding...' : 'Add Classroom'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

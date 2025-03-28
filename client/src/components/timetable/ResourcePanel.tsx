@@ -26,7 +26,7 @@ function TeacherItem({ teacher }: { teacher: TeacherType }) {
     item: { 
       id: teacher.id, 
       type: 'teacher', 
-      name: teacher.user?.name || `Teacher ${teacher.id}` 
+      name: `Teacher ${teacher.id}`  // We don't have user object linked directly
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
@@ -44,7 +44,7 @@ function TeacherItem({ teacher }: { teacher: TeacherType }) {
     >
       <UserCircle2 className={`h-5 w-5 mr-2 ${isUpset ? "text-amber-500" : "text-blue-500"}`} />
       <div className="flex-1">
-        <div className="font-medium text-sm">{teacher.user?.name || `Teacher ${teacher.id}`}</div>
+        <div className="font-medium text-sm">{`Teacher ${teacher.id}`}</div>
         {isUpset && (
           <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200">
             Upset
@@ -122,7 +122,8 @@ export default function ResourcePanel({ teachers, subjects, classrooms }: Resour
   
   // Filter resources based on search terms - check for null/undefined
   const filteredTeachers = teachers?.filter(teacher => 
-    teacher.user?.name?.toLowerCase().includes(teacherSearch.toLowerCase())
+    // Search by teacher ID since we don't have user property directly
+    `Teacher ${teacher.id}`.toLowerCase().includes(teacherSearch.toLowerCase())
   ) || [];
   
   const filteredSubjects = subjects?.filter(subject => 

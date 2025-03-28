@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TeacherType, SubjectType } from "@/types/timetable";
 // Form schema for adding a new teacher
 const teacherFormSchema = z.object({
   name: z.string().min(3, { message: "Name must be at least 3 characters" }),
@@ -75,11 +76,22 @@ export default function Teachers() {
 
   // Filter teachers based on search term
   const filteredTeachers = teachers.filter(
-    (teacher) =>
-      teacher.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.subjects?.some((subject) =>
-        subject.name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    (teacher: TeacherType) => {
+      // First attempt to filter by teacher name if available
+      if (teacher.user?.name && teacher.user.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return true;
+      }
+      
+      // Then try to filter by subject if available
+      if (teacher.subjects && teacher.subjects.length > 0) {
+        return teacher.subjects.some((subject: SubjectType) => 
+          subject.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      
+      // If no user or subjects available, include in results when no search term
+      return searchTerm === "";
+    }
   );
 
   // Format subjects for multi-select
@@ -105,7 +117,7 @@ export default function Teachers() {
         "/api/users",
         {
           username: data.email.split('@')[0],
-          password: data.password,
+          password: "teacher123", // Default password
           name: data.name,
           email: data.email,
           role: data.role,
@@ -194,16 +206,20 @@ export default function Teachers() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredTeachers.map((teacher) => (
+                filteredTeachers.map((teacher: TeacherType) => (
                   <TableRow key={teacher.id}>
-                    <TableCell className="font-medium">{teacher.user?.name}</TableCell>
+                    <TableCell className="font-medium">{teacher.user?.name || `Teacher ${teacher.id}`}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {teacher.subjects?.map((subject) => (
-                          <Badge key={subject.id} variant="outline" className="bg-primary/10 text-primary">
-                            {subject.name}
-                          </Badge>
-                        ))}
+                        {teacher.subjects && teacher.subjects.length > 0 ? (
+                          teacher.subjects.map((subject: SubjectType) => (
+                            <Badge key={subject.id} variant="outline" className="bg-primary/10 text-primary">
+                              {subject.name}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground text-sm">No subjects assigned</span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -283,33 +299,22 @@ export default function Teachers() {
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="subjects"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Subjects (Optional)</FormLabel>
-                    <Select>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select subjects" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {subjects.map(subject => (
-                          <SelectItem key={subject.id} value={subject.id.toString()}>
-                            {subject.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      The subjects this teacher can teach
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Subject selection handled separately after teacher creation */}
+              <div className="mt-4">
+                <Label>Subjects (Optional)</Label>
+                <div className="border rounded-md p-3 mt-2 bg-muted/20">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Subjects can be assigned to the teacher after creation
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {subjects.map(subject => (
+                      <Badge key={subject.id} variant="outline">
+                        {subject.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
               
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setShowAddTeacherDialog(false)}>

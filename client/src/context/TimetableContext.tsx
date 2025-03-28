@@ -4,12 +4,11 @@ import {
   DivisionType, 
   TeacherType, 
   ClassroomType, 
-  SubjectType, 
-  TimetableType, 
+  SubjectType,
   SlotType, 
   ConflictType,
   WeekdayType
-} from "../types";
+} from "../types/timetable";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +44,12 @@ interface TimetableContextType {
   assignSubstitute: (slotId: number, newTeacherId: number) => Promise<void>;
   resolveConflict: (conflictId: number) => Promise<void>;
   createTimetable: (timetable: { divisionId: number, createdBy: number }) => Promise<any>;
+  
+  // Refetch functions
+  refetchDepartments: () => Promise<void>;
+  refetchTeachers: () => Promise<void>;
+  refetchClassrooms: () => Promise<void>;
+  refetchSubjects: () => Promise<void>;
   
   // Loading states
   isLoading: boolean;
@@ -82,6 +87,12 @@ export const TimetableContext = createContext<TimetableContextType>({
   assignSubstitute: async () => {},
   resolveConflict: async () => {},
   createTimetable: async () => null,
+
+  // Refetch functions
+  refetchDepartments: async () => {},
+  refetchTeachers: async () => {},
+  refetchClassrooms: async () => {},
+  refetchSubjects: async () => {},
   
   // Loading states
   isLoading: false
@@ -396,6 +407,20 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
     },
     createTimetable: async (timetable: { divisionId: number, createdBy: number }) => {
       return await createTimetableMutation.mutateAsync(timetable);
+    },
+    
+    // Refetch functions
+    refetchDepartments: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+    },
+    refetchTeachers: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/teachers"] });
+    },
+    refetchClassrooms: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/classrooms"] });
+    },
+    refetchSubjects: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
     },
     
     // Loading state

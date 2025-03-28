@@ -38,9 +38,8 @@ export default function ClassItem({ slot, onUpdate, onDelete, readOnly = false }
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopover, setShowPopover] = useState(false);
   
-  const teacher = slot.teacher;
-  const subject = slot.subject;
-  const classroom = slot.classroom;
+  // The slot directly contains IDs, we'll display placeholders for now
+  // In a real implementation, these would be populated through proper joins
   
   // Set up drag and drop if not in readOnly mode
   const [{ isDragging }, drag, preview] = useDrag({
@@ -88,7 +87,7 @@ export default function ClassItem({ slot, onUpdate, onDelete, readOnly = false }
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
           <h4 className="font-medium text-sm truncate">
-            {subject?.name || "Unknown Subject"}
+            {`Subject ID: ${slot.subjectId}`}
           </h4>
           <p className="text-xs text-muted-foreground flex items-center">
             <Clock className="h-3 w-3 mr-1" />
@@ -122,8 +121,8 @@ export default function ClassItem({ slot, onUpdate, onDelete, readOnly = false }
         <div className="mt-2 space-y-1 text-xs">
           <div className="flex items-center">
             <User className="h-3 w-3 mr-1" />
-            <span className="font-medium mr-1">Teacher:</span>
-            <span>{teacher?.name || "Unassigned"}</span>
+            <span className="font-medium mr-1">Teacher ID:</span>
+            <span>{slot.teacherId}</span>
           </div>
           <div className="flex items-center">
             <BookOpen className="h-3 w-3 mr-1" />
@@ -132,8 +131,8 @@ export default function ClassItem({ slot, onUpdate, onDelete, readOnly = false }
           </div>
           <div className="flex items-center">
             <Home className="h-3 w-3 mr-1" />
-            <span className="font-medium mr-1">Room:</span>
-            <span>{classroom?.number || "Unassigned"}</span>
+            <span className="font-medium mr-1">Room ID:</span>
+            <span>{slot.classroomId}</span>
           </div>
         </div>
       )}

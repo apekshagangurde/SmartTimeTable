@@ -144,8 +144,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/classrooms", async (req, res) => {
     try {
       const departmentId = req.query.departmentId ? parseInt(req.query.departmentId as string) : undefined;
-      const classrooms = await storage.getClassrooms(departmentId);
-      res.json(classrooms);
+      
+      // Combine classrooms from both storage systems
+      const memClassrooms = await storage.getClassrooms(departmentId);
+      const csvClassrooms = csvStorage.getClassrooms(departmentId);
+      
+      // Filter out duplicates by ID (CSV storage takes precedence)
+      const csvIds = new Set(csvClassrooms.map(c => c.id));
+      const combinedClassrooms = [
+        ...memClassrooms.filter(c => !csvIds.has(c.id)),
+        ...csvClassrooms
+      ];
+      
+      res.json(combinedClassrooms);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch classrooms" });
     }
@@ -154,7 +165,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/classrooms", async (req, res) => {
     try {
       const classroomData = insertClassroomSchema.parse(req.body);
-      const newClassroom = await storage.createClassroom(classroomData);
+      
+      // Store in CSV instead of memory
+      const newClassroom = csvStorage.createClassroom(classroomData);
+      
+      // Also store in memory for compatibility with other operations
+      await storage.createClassroom(classroomData);
+      
       res.status(201).json(newClassroom);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -168,8 +185,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/subjects", async (req, res) => {
     try {
       const departmentId = req.query.departmentId ? parseInt(req.query.departmentId as string) : undefined;
-      const subjects = await storage.getSubjects(departmentId);
-      res.json(subjects);
+      
+      // Combine subjects from both storage systems
+      const memSubjects = await storage.getSubjects(departmentId);
+      const csvSubjects = csvStorage.getSubjects(departmentId);
+      
+      // Filter out duplicates by ID (CSV storage takes precedence)
+      const csvIds = new Set(csvSubjects.map(s => s.id));
+      const combinedSubjects = [
+        ...memSubjects.filter(s => !csvIds.has(s.id)),
+        ...csvSubjects
+      ];
+      
+      res.json(combinedSubjects);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch subjects" });
     }
@@ -178,7 +206,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/subjects", async (req, res) => {
     try {
       const subjectData = insertSubjectSchema.parse(req.body);
-      const newSubject = await storage.createSubject(subjectData);
+      
+      // Store in CSV instead of memory
+      const newSubject = csvStorage.createSubject(subjectData);
+      
+      // Also store in memory for compatibility with other operations
+      await storage.createSubject(subjectData);
+      
       res.status(201).json(newSubject);
     } catch (error) {
       if (error instanceof z.ZodError) {

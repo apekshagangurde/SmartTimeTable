@@ -30,17 +30,73 @@ import {
   Trash,
   Building
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Departments() {
-  const { departments } = useTimetable();
+  const { departments, refetchDepartments } = useTimetable();
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddDepartmentDialog, setShowAddDepartmentDialog] = useState(false);
+  const [newDepartmentName, setNewDepartmentName] = useState("");
+  const [newDepartmentShortName, setNewDepartmentShortName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   // Mock counts (would come from API in real implementation)
   const getDivisionCount = (departmentId: number) => Math.floor(Math.random() * 5) + 1;
   const getTeacherCount = (departmentId: number) => Math.floor(Math.random() * 20) + 5;
   const getSubjectCount = (departmentId: number) => Math.floor(Math.random() * 15) + 5;
   const getClassroomCount = (departmentId: number) => Math.floor(Math.random() * 10) + 2;
+  
+  const handleAddDepartment = async () => {
+    if (!newDepartmentName.trim() || !newDepartmentShortName.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide both department name and short name",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      const response = await apiRequest(
+        "POST", 
+        '/api/departments', 
+        {
+          name: newDepartmentName.trim(),
+          shortName: newDepartmentShortName.trim()
+        }
+      );
+      
+      if (response) {
+        toast({
+          title: "Department Added",
+          description: `${newDepartmentName} has been added successfully`
+        });
+        
+        // Reset form
+        setNewDepartmentName("");
+        setNewDepartmentShortName("");
+        setShowAddDepartmentDialog(false);
+        
+        // Refresh departments list
+        if (refetchDepartments) {
+          refetchDepartments();
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add department. Please try again.",
+        variant: "destructive"
+      });
+      console.error("Failed to add department:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Filter departments based on search term
   const filteredDepartments = departments.filter(
@@ -155,12 +211,22 @@ export default function Departments() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="departmentName">Department Name</Label>
-              <Input id="departmentName" placeholder="e.g., Computer Science Engineering" />
+              <Input 
+                id="departmentName" 
+                placeholder="e.g., Computer Science Engineering" 
+                value={newDepartmentName}
+                onChange={(e) => setNewDepartmentName(e.target.value)}
+              />
             </div>
             
             <div className="grid gap-2">
               <Label htmlFor="shortName">Short Name</Label>
-              <Input id="shortName" placeholder="e.g., CSE" />
+              <Input 
+                id="shortName" 
+                placeholder="e.g., CSE" 
+                value={newDepartmentShortName}
+                onChange={(e) => setNewDepartmentShortName(e.target.value)}
+              />
             </div>
           </div>
           
@@ -168,7 +234,12 @@ export default function Departments() {
             <Button variant="outline" onClick={() => setShowAddDepartmentDialog(false)}>
               Cancel
             </Button>
-            <Button>Add Department</Button>
+            <Button 
+              onClick={handleAddDepartment}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Adding...' : 'Add Department'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

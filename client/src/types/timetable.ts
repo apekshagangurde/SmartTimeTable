@@ -1,16 +1,38 @@
-import { Department, Division, Teacher, Subject, Classroom, Slot, Conflict } from "../../../shared/schema";
+import { Department, Division, Teacher, Subject, Classroom, Slot, Conflict, User } from "../../../shared/schema";
 
 // Exported type aliases for better readability
 export type DepartmentType = Department;
 export type DivisionType = Division;
-export type TeacherType = Teacher;
+export type TeacherType = Teacher & {
+  user?: User;
+  subjects?: Subject[];
+};
 export type SubjectType = Subject;
 export type ClassroomType = Classroom;
-export type SlotType = Slot;
 export type ConflictType = Conflict;
 
 // Additional types for the timetable application
 export type WeekdayType = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
+
+// Extended SlotType based on the Slot type from schema but with additional type safety
+export type SlotType = {
+  id: number;
+  timetableId: number;
+  day: WeekdayType; // Using our WeekdayType instead of string
+  startTime: string;
+  endTime: string;
+  subjectId: number;
+  teacherId: number;
+  classroomId: number;
+  type: "Lecture" | "Lab" | "Tutorial";
+  isSubstitution: boolean | null;
+  originalTeacherId: number | null;
+  // Optional populated fields
+  subject?: SubjectType;
+  teacher?: TeacherType;
+  classroom?: ClassroomType;
+  originalTeacher?: TeacherType;
+};
 
 // Resource item types for drag and drop
 export type ResourceItem = {

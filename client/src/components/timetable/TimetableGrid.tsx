@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useDrop } from "react-dnd";
 import { ItemTypes } from "../../lib/dnd";
-import { SlotType } from "../../types/timetable";
+import { SlotType, WeekdayType } from "../../types/timetable";
 import ClassItem from "./ClassItem";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
@@ -10,7 +10,7 @@ type TimetableGridProps = {
   slots: SlotType[];
   onUpdate: (id: number, updates: Partial<SlotType>) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
-  onCreateEmptySlot: (day: string, hour: number) => void;
+  onCreateEmptySlot: (day: WeekdayType, hour: number) => void;
   readOnly?: boolean;
 };
 
@@ -23,7 +23,7 @@ export default function TimetableGrid({
 }: TimetableGridProps) {
   const [hoveredCell, setHoveredCell] = useState<{ day: string, hour: number } | null>(null);
   
-  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const days: WeekdayType[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const hours = Array.from({ length: 11 }, (_, i) => i + 8); // 8 AM to 6 PM
   
   // Create a matrix of day x hour to easily look up slots
@@ -59,15 +59,15 @@ export default function TimetableGrid({
   // Handle slot dropping
   const handleDrop = (item: any, day: string, hour: number) => {
     if (item.id && item.type === 'slot') {
-      // Update existing slot
+      // Update existing slot - cast day to WeekdayType
       onUpdate(item.id, {
-        day,
+        day: day as WeekdayType,
         startTime: String(hour).padStart(2, '0') + ":00",
         endTime: String(hour + 1).padStart(2, '0') + ":00"
       });
     } else {
       // Create new slot with the dragged resource
-      onCreateEmptySlot(day, hour);
+      onCreateEmptySlot(day as WeekdayType, hour);
     }
   };
   
@@ -136,7 +136,7 @@ export default function TimetableGrid({
                           <Button
                             variant="ghost"
                             className="h-full w-full rounded-none text-muted-foreground hover:bg-muted/30"
-                            onClick={() => onCreateEmptySlot(day, hour)}
+                            onClick={() => onCreateEmptySlot(day as WeekdayType, hour)}
                           >
                             <PlusCircle className="h-5 w-5" />
                           </Button>

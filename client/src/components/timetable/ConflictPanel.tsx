@@ -37,24 +37,24 @@ const getConflictMessage = (conflict: ConflictType) => {
   }
 };
 
-// Helper function to get the severity icon
-const getSeverityIcon = (severity: string) => {
-  switch (severity) {
-    case "high":
+// Helper function to get the severity icon based on conflict type
+const getSeverityIcon = (conflict: ConflictType) => {
+  switch (conflict.type) {
+    case "teacher_clash":
       return <AlertCircle className="h-5 w-5 text-red-500" />;
-    case "medium":
+    case "room_conflict":
       return <AlertTriangle className="h-5 w-5 text-amber-500" />;
     default:
       return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
   }
 };
 
-// Helper to determine the badge color based on severity
-const getSeverityColor = (severity: string) => {
-  switch (severity) {
-    case "high":
+// Helper to determine the badge color based on conflict type
+const getSeverityColor = (conflict: ConflictType) => {
+  switch (conflict.type) {
+    case "teacher_clash":
       return "bg-red-100 text-red-800 border-red-200";
-    case "medium":
+    case "room_conflict":
       return "bg-amber-100 text-amber-800 border-amber-200";
     default:
       return "bg-yellow-100 text-yellow-800 border-yellow-200";
@@ -94,7 +94,7 @@ export default function ConflictPanel({ conflicts, onResolve }: ConflictPanelPro
           <AccordionItem key={conflict.id} value={conflict.id.toString()}>
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center text-left">
-                {getSeverityIcon(conflict.severity)}
+                {getSeverityIcon(conflict)}
                 <div className="ml-2">
                   <p className="text-sm font-medium">{getConflictMessage(conflict)}</p>
                   <div className="flex items-center mt-1 text-xs text-muted-foreground">
@@ -109,11 +109,11 @@ export default function ConflictPanel({ conflicts, onResolve }: ConflictPanelPro
             
             <AccordionContent>
               <div className="py-2">
-                <div className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getSeverityColor(conflict.severity)}`}>
-                  Severity: {conflict.severity}
+                <div className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getSeverityColor(conflict)}`}>
+                  Severity: {conflict.type === 'teacher_clash' ? 'High' : 'Medium'}
                 </div>
                 
-                <p className="mt-2 text-sm">{conflict.details}</p>
+                <p className="mt-2 text-sm">{conflict.description}</p>
                 
                 <Separator className="my-3" />
                 
@@ -124,7 +124,9 @@ export default function ConflictPanel({ conflicts, onResolve }: ConflictPanelPro
                   <div className="flex-1">
                     <p className="text-sm font-medium">Automated suggestion</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {conflict.resolution || "Move the class to an available time slot"}
+                      {conflict.type === "teacher_clash" 
+                        ? "Reassign a different teacher to this slot" 
+                        : "Move the class to an available time slot"}
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
