@@ -1,102 +1,90 @@
-import { RefObject } from "react";
-import { GridCellPosition, WeekdayType } from "../types";
+import { GridCellPosition, WeekdayType } from "../types/timetable";
 
-// DnD item types
+// Define the types for draggable items
 export const ItemTypes = {
-  TEACHER: "teacher",
-  CLASSROOM: "classroom",
-  SUBJECT: "subject",
-  SLOT: "slot",
+  TEACHER: 'teacher',
+  CLASSROOM: 'classroom',
+  SUBJECT: 'subject',
+  SLOT: 'slot',
+  CLASS: 'class'
 };
 
-// Helper to convert time string to minutes since midnight
+// Convert time string to minutes for calculations
 export const timeToMinutes = (time: string): number => {
-  const [hours, minutes] = time.split(":").map(Number);
+  const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
 };
 
-// Helper to convert minutes since midnight to time string
+// Convert minutes back to time string
 export const minutesToTime = (minutes: number): string => {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
 };
 
-// Calculate position for a slot in the grid
+// Calculate the position for a slot based on the day and times
 export const calculateSlotPosition = (
+  day: WeekdayType,
   startTime: string,
   endTime: string,
-  day: WeekdayType,
-  gridStartTime: string,
-  hourHeight: number
-): {
-  top: number;
-  height: number;
-  day: WeekdayType;
-} => {
+  cellHeight: number = 60,
+  cellWidth: number = 100
+): { top: number; height: number; left: number; width: number } => {
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayIndex = days.indexOf(day);
+  
   const startMinutes = timeToMinutes(startTime);
   const endMinutes = timeToMinutes(endTime);
-  const gridStartMinutes = timeToMinutes(gridStartTime);
   
-  const topOffset = (startMinutes - gridStartMinutes) / 60 * hourHeight;
-  const heightValue = (endMinutes - startMinutes) / 60 * hourHeight;
+  // 8:00 AM (480 minutes) is the start of our grid
+  const startOfDay = 8 * 60; 
   
-  return {
-    top: topOffset,
-    height: heightValue,
-    day
-  };
+  const top = ((startMinutes - startOfDay) / 60) * cellHeight;
+  const height = ((endMinutes - startMinutes) / 60) * cellHeight;
+  const left = dayIndex * cellWidth;
+  
+  return { top, height, left, width: cellWidth };
 };
 
-// Calculate grid cell position from mouse coordinates
+// Get grid cell from mouse position
 export const getGridCellFromPoint = (
-  x: number, 
-  y: number, 
-  gridRef: RefObject<HTMLDivElement>,
-  hourHeight: number,
-  gridStartTime: string,
-  days: WeekdayType[]
+  x: number,
+  y: number,
+  gridRef: React.RefObject<HTMLDivElement>,
+  cellWidth: number = 100,
+  cellHeight: number = 60
 ): GridCellPosition | null => {
   if (!gridRef.current) return null;
   
-  const gridRect = gridRef.current.getBoundingClientRect();
+  const rect = gridRef.current.getBoundingClientRect();
+  const relX = x - rect.left;
+  const relY = y - rect.top;
   
-  // Check if point is within grid
-  if (
-    x < gridRect.left || 
-    x > gridRect.right || 
-    y < gridRect.top || 
-    y > gridRect.bottom
-  ) {
+  // Out of bounds
+  if (relX < 0 || relY < 0 || relX > rect.width || relY > rect.height) {
     return null;
   }
   
-  // Calculate relative position
-  const relativeX = x - gridRect.left;
-  const relativeY = y - gridRect.top - 48; // 48px for header
+  // Adjust for the first column (times)
+  const adjustedX = relX - 80; // 80px for the time column
+  if (adjustedX < 0) return null;
   
-  if (relativeY < 0) return null;
+  const dayIndex = Math.floor(adjustedX / cellWidth);
+  const hour = Math.floor(relY / cellHeight) + 8; // 8 AM start
   
-  // Calculate day column
-  const columnWidth = gridRect.width / (days.length + 1); // +1 for time column
-  const columnIndex = Math.floor(relativeX / columnWidth);
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   
-  // First column is time, not a day
-  if (columnIndex === 0) return null;
-  if (columnIndex > days.length) return null;
+  if (dayIndex < 0 || dayIndex >= days.length || hour < 8 || hour > 18) {
+    return null;
+  }
   
-  const day = days[columnIndex - 1];
-  
-  // Calculate time
-  const gridStartMinutes = timeToMinutes(gridStartTime);
-  const minutes = Math.floor(relativeY / hourHeight * 60) + gridStartMinutes;
-  const hour = Math.floor(minutes / 60);
-  const minute = minutes % 60;
-  
-  return { day, hour, minute };
+  return {
+    day: days[dayIndex] as WeekdayType,
+    hour
+  };
 };
 
-// Convert grid cell position to time string
+// Convert grid cell to time string
 export const gridCellToTimeString = (position: GridCellPosition): string => {
-  return `${position.hour.toString().padStart(2, "0")}:${position.minute.toString().padStart(2, "0")}`;
+  return `${String(position.hour).padStart(2, '0')}:00`;
 };

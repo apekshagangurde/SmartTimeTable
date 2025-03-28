@@ -1,178 +1,201 @@
-import { useTimetable } from "@/context/TimetableContext";
+import { useState } from "react";
 import { useDrag } from "react-dnd";
-import { ItemTypes } from "@/lib/dnd";
+import { ItemTypes } from "../../lib/dnd";
+import { TeacherType, SubjectType, ClassroomType } from "../../types/timetable";
 import { Card, CardContent } from "@/components/ui/card";
-import { UserIcon, DoorOpen, BookOpen } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { Search, UserCircle2, BookOpen, Home } from "lucide-react";
 
-export default function ResourcePanel() {
-  const { teachers, classrooms, subjects } = useTimetable();
+type ResourcePanelProps = {
+  teachers: TeacherType[];
+  subjects: SubjectType[];
+  classrooms: ClassroomType[];
+};
 
-  return (
-    <Card className="bg-white rounded-lg shadow-md p-4 mb-4">
-      <h3 className="text-md font-medium text-neutral-dark mb-4">Resources</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <TeachersList teachers={teachers} />
-        <ClassroomsList classrooms={classrooms} />
-        <SubjectsList subjects={subjects} />
-      </div>
-    </Card>
-  );
-}
-
-function TeachersList({ teachers }: { teachers: any[] }) {
-  return (
-    <div>
-      <h4 className="text-sm font-medium text-neutral-dark mb-2 flex items-center">
-        <UserIcon className="mr-2 h-4 w-4 text-primary" />
-        <span>Teachers</span>
-      </h4>
-      <div className="bg-neutral-lightest p-3 rounded-md h-48 overflow-y-auto">
-        <p className="text-xs text-neutral-medium mb-2">Drag teachers to the timetable</p>
-        
-        {teachers.length === 0 ? (
-          <div className="text-center py-4 text-neutral-medium text-sm">
-            No teachers available
-          </div>
-        ) : (
-          teachers.map((teacher) => (
-            <DraggableTeacherItem key={teacher.id} teacher={teacher} />
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ClassroomsList({ classrooms }: { classrooms: any[] }) {
-  return (
-    <div>
-      <h4 className="text-sm font-medium text-neutral-dark mb-2 flex items-center">
-        <DoorOpen className="mr-2 h-4 w-4 text-primary" />
-        <span>Classrooms</span>
-      </h4>
-      <div className="bg-neutral-lightest p-3 rounded-md h-48 overflow-y-auto">
-        <p className="text-xs text-neutral-medium mb-2">Drag classrooms to the timetable</p>
-        
-        {classrooms.length === 0 ? (
-          <div className="text-center py-4 text-neutral-medium text-sm">
-            No classrooms available
-          </div>
-        ) : (
-          classrooms.map((classroom) => (
-            <DraggableClassroomItem key={classroom.id} classroom={classroom} />
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SubjectsList({ subjects }: { subjects: any[] }) {
-  return (
-    <div>
-      <h4 className="text-sm font-medium text-neutral-dark mb-2 flex items-center">
-        <BookOpen className="mr-2 h-4 w-4 text-primary" />
-        <span>Subjects</span>
-      </h4>
-      <div className="bg-neutral-lightest p-3 rounded-md h-48 overflow-y-auto">
-        <p className="text-xs text-neutral-medium mb-2">Drag subjects to the timetable</p>
-        
-        {subjects.length === 0 ? (
-          <div className="text-center py-4 text-neutral-medium text-sm">
-            No subjects available
-          </div>
-        ) : (
-          subjects.map((subject) => (
-            <DraggableSubjectItem key={subject.id} subject={subject} />
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-function DraggableTeacherItem({ teacher }: { teacher: any }) {
-  const [{ isDragging }, drag] = useDrag(() => ({
+// Component for a draggable teacher item
+function TeacherItem({ teacher }: { teacher: TeacherType }) {
+  const [{ isDragging }, drag] = useDrag({
     type: ItemTypes.TEACHER,
-    item: { type: "teacher", id: teacher.id, data: teacher },
+    item: { id: teacher.id, type: 'teacher', name: teacher.name },
     collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-  }));
-
+      isDragging: monitor.isDragging()
+    })
+  });
+  
+  const isUpset = teacher.isUpset;
+  
   return (
     <div
       ref={drag}
-      className="bg-white rounded-md p-2 mb-2 shadow-sm cursor-move"
-      style={{ opacity: isDragging ? 0.5 : 1 }}
+      className={`flex items-center p-2 rounded-md mb-2 border cursor-move hover:bg-gray-100 ${
+        isDragging ? "opacity-50" : "opacity-100"
+      } ${isUpset ? "border-amber-300 bg-amber-50" : "border-gray-200"}`}
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-sm font-medium">{teacher.user?.name || "Unknown Teacher"}</div>
-          <div className="text-xs text-neutral-medium">
-            {teacher.subjects?.map((subject: any) => subject.name).join(", ") || "No subjects assigned"}
-          </div>
-        </div>
-        <div 
-          className={`w-3 h-3 rounded-full ${teacher.isUpset ? "bg-error" : "bg-success"}`} 
-          title={teacher.isUpset ? "Upset" : "Available"}
-        ></div>
+      <UserCircle2 className={`h-5 w-5 mr-2 ${isUpset ? "text-amber-500" : "text-blue-500"}`} />
+      <div className="flex-1">
+        <div className="font-medium text-sm">{teacher.name}</div>
+        {isUpset && (
+          <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200">
+            Upset
+          </Badge>
+        )}
       </div>
     </div>
   );
 }
 
-function DraggableClassroomItem({ classroom }: { classroom: any }) {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: ItemTypes.CLASSROOM,
-    item: { type: "classroom", id: classroom.id, data: classroom },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-  }));
-
-  return (
-    <div
-      ref={drag}
-      className="bg-white rounded-md p-2 mb-2 shadow-sm cursor-move"
-      style={{ opacity: isDragging ? 0.5 : 1 }}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-sm font-medium">{classroom.name}</div>
-          <div className="text-xs text-neutral-medium">
-            {classroom.department?.name || "Unknown Department"}
-          </div>
-        </div>
-        <div className="flex items-center">
-          <span className="text-xs bg-neutral-light px-1 rounded">Cap: {classroom.capacity}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DraggableSubjectItem({ subject }: { subject: any }) {
-  const [{ isDragging }, drag] = useDrag(() => ({
+// Component for a draggable subject item
+function SubjectItem({ subject }: { subject: SubjectType }) {
+  const [{ isDragging }, drag] = useDrag({
     type: ItemTypes.SUBJECT,
-    item: { type: "subject", id: subject.id, data: subject },
+    item: { id: subject.id, type: 'subject', name: subject.name },
     collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-  }));
-
+      isDragging: monitor.isDragging()
+    })
+  });
+  
   return (
     <div
       ref={drag}
-      className="bg-white rounded-md p-2 mb-2 shadow-sm cursor-move"
-      style={{ opacity: isDragging ? 0.5 : 1 }}
+      className={`flex items-center p-2 rounded-md mb-2 border cursor-move hover:bg-gray-100 ${
+        isDragging ? "opacity-50" : "opacity-100"
+      } border-gray-200`}
     >
-      <div className="text-sm font-medium">{subject.name}</div>
-      <div className="flex justify-between text-xs text-neutral-medium">
-        <span>{subject.department?.shortName || "Unknown"} - Semester {subject.semester}</span>
-        <span>Credits: {subject.credits}</span>
+      <BookOpen className="h-5 w-5 mr-2 text-purple-500" />
+      <div className="flex-1">
+        <div className="font-medium text-sm">{subject.name}</div>
+        <div className="text-xs text-muted-foreground">{subject.code}</div>
       </div>
     </div>
+  );
+}
+
+// Component for a draggable classroom item
+function ClassroomItem({ classroom }: { classroom: ClassroomType }) {
+  const [{ isDragging }, drag] = useDrag({
+    type: ItemTypes.CLASSROOM,
+    item: { id: classroom.id, type: 'classroom', name: classroom.number },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging()
+    })
+  });
+  
+  return (
+    <div
+      ref={drag}
+      className={`flex items-center p-2 rounded-md mb-2 border cursor-move hover:bg-gray-100 ${
+        isDragging ? "opacity-50" : "opacity-100"
+      } border-gray-200`}
+    >
+      <Home className="h-5 w-5 mr-2 text-green-500" />
+      <div className="flex-1">
+        <div className="font-medium text-sm">{classroom.number}</div>
+        <div className="text-xs text-muted-foreground">Capacity: {classroom.capacity}</div>
+      </div>
+    </div>
+  );
+}
+
+export default function ResourcePanel({ teachers, subjects, classrooms }: ResourcePanelProps) {
+  const [teacherSearch, setTeacherSearch] = useState("");
+  const [subjectSearch, setSubjectSearch] = useState("");
+  const [classroomSearch, setClassroomSearch] = useState("");
+  
+  // Filter resources based on search terms
+  const filteredTeachers = teachers.filter(teacher => 
+    teacher.name.toLowerCase().includes(teacherSearch.toLowerCase())
+  );
+  
+  const filteredSubjects = subjects.filter(subject => 
+    subject.name.toLowerCase().includes(subjectSearch.toLowerCase()) ||
+    subject.code.toLowerCase().includes(subjectSearch.toLowerCase())
+  );
+  
+  const filteredClassrooms = classrooms.filter(classroom => 
+    classroom.number.toLowerCase().includes(classroomSearch.toLowerCase())
+  );
+  
+  return (
+    <Card>
+      <Tabs defaultValue="teachers">
+        <TabsList className="w-full">
+          <TabsTrigger value="teachers" className="flex-1">Teachers</TabsTrigger>
+          <TabsTrigger value="subjects" className="flex-1">Subjects</TabsTrigger>
+          <TabsTrigger value="classrooms" className="flex-1">Rooms</TabsTrigger>
+        </TabsList>
+        
+        <CardContent className="pt-4">
+          <TabsContent value="teachers" className="mt-0">
+            <div className="relative mb-4">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search teachers..."
+                className="pl-8"
+                value={teacherSearch}
+                onChange={(e) => setTeacherSearch(e.target.value)}
+              />
+            </div>
+            <div className="max-h-[400px] overflow-y-auto pr-1">
+              {filteredTeachers.length === 0 ? (
+                <p className="text-center text-muted-foreground text-sm py-4">No teachers found</p>
+              ) : (
+                filteredTeachers.map((teacher) => (
+                  <TeacherItem key={teacher.id} teacher={teacher} />
+                ))
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="subjects" className="mt-0">
+            <div className="relative mb-4">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search subjects..."
+                className="pl-8"
+                value={subjectSearch}
+                onChange={(e) => setSubjectSearch(e.target.value)}
+              />
+            </div>
+            <div className="max-h-[400px] overflow-y-auto pr-1">
+              {filteredSubjects.length === 0 ? (
+                <p className="text-center text-muted-foreground text-sm py-4">No subjects found</p>
+              ) : (
+                filteredSubjects.map((subject) => (
+                  <SubjectItem key={subject.id} subject={subject} />
+                ))
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="classrooms" className="mt-0">
+            <div className="relative mb-4">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search classrooms..."
+                className="pl-8"
+                value={classroomSearch}
+                onChange={(e) => setClassroomSearch(e.target.value)}
+              />
+            </div>
+            <div className="max-h-[400px] overflow-y-auto pr-1">
+              {filteredClassrooms.length === 0 ? (
+                <p className="text-center text-muted-foreground text-sm py-4">No classrooms found</p>
+              ) : (
+                filteredClassrooms.map((classroom) => (
+                  <ClassroomItem key={classroom.id} classroom={classroom} />
+                ))
+              )}
+            </div>
+          </TabsContent>
+        </CardContent>
+      </Tabs>
+    </Card>
   );
 }

@@ -260,10 +260,18 @@ export default function Timetables() {
                     <TableCell>{timetable.createdBy}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate(`/timetable/view/${timetable.id}`)}
+                        >
                           <Calendar className="h-4 w-4 mr-1" /> View
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate(`/timetable/${timetable.id}`)}
+                        >
                           <FileEdit className="h-4 w-4 mr-1" /> Edit
                         </Button>
                         <Button variant="outline" size="sm" className="text-red-500">

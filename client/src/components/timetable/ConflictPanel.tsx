@@ -1,86 +1,147 @@
-import { useTimetable } from "@/context/TimetableContext";
-import { AlertTriangle, User, DoorOpen } from "lucide-react";
+import { useState } from "react";
+import { ConflictType } from "../../types/timetable";
 import { Button } from "@/components/ui/button";
-import { ConflictType } from "@/types";
+import {
+  AlertCircle,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  X,
+  ChevronRight,
+} from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ConflictPanelProps {
-  onViewOptions: (conflict: ConflictType) => void;
+  conflicts: ConflictType[];
+  onResolve: (id: number) => Promise<void>;
 }
 
-export default function ConflictPanel({ onViewOptions }: ConflictPanelProps) {
-  const { conflicts, resolveConflict } = useTimetable();
+// Helper function to get a human-readable message for each conflict type
+const getConflictMessage = (conflict: ConflictType) => {
+  switch (conflict.type) {
+    case "teacher_clash":
+      return `Teacher ${conflict.description} is assigned to multiple classes at the same time`;
+    case "room_conflict":
+      return `Room ${conflict.description} is double-booked`;
+    case "time_allocation":
+      return `Time allocation issue: ${conflict.description}`;
+    default:
+      return conflict.description;
+  }
+};
 
+// Helper function to get the severity icon
+const getSeverityIcon = (severity: string) => {
+  switch (severity) {
+    case "high":
+      return <AlertCircle className="h-5 w-5 text-red-500" />;
+    case "medium":
+      return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+    default:
+      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+  }
+};
+
+// Helper to determine the badge color based on severity
+const getSeverityColor = (severity: string) => {
+  switch (severity) {
+    case "high":
+      return "bg-red-100 text-red-800 border-red-200";
+    case "medium":
+      return "bg-amber-100 text-amber-800 border-amber-200";
+    default:
+      return "bg-yellow-100 text-yellow-800 border-yellow-200";
+  }
+};
+
+export default function ConflictPanel({ conflicts, onResolve }: ConflictPanelProps) {
+  const [resolving, setResolving] = useState<number | null>(null);
+  
+  const handleResolve = async (id: number) => {
+    setResolving(id);
+    try {
+      await onResolve(id);
+    } finally {
+      setResolving(null);
+    }
+  };
+  
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-      <h3 className="text-md font-medium text-neutral-dark mb-4 flex items-center">
-        <AlertTriangle className="mr-2 h-5 w-5 text-error" />
-        <span>Conflicts</span>
-        {conflicts.length > 0 && (
-          <span className="ml-2 bg-error text-white text-xs px-2 py-0.5 rounded-full">
-            {conflicts.length}
-          </span>
-        )}
-      </h3>
-      
-      {conflicts.length === 0 ? (
-        <div className="text-center py-6 text-neutral-medium">
-          No conflicts detected
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-neutral-light">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-neutral-medium uppercase tracking-wider">Type</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-neutral-medium uppercase tracking-wider">Day & Time</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-neutral-medium uppercase tracking-wider">Description</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-neutral-medium uppercase tracking-wider">Resolution</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-light">
-              {conflicts.map((conflict) => (
-                <tr key={conflict.id}>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center text-xs px-2 py-1 rounded-full ${
-                      conflict.type === "TeacherClash" 
-                        ? "bg-error/10 text-error" 
-                        : conflict.type === "RoomConflict" 
-                        ? "bg-warning/10 text-warning" 
-                        : "bg-info/10 text-info"
-                    }`}>
-                      {conflict.type === "TeacherClash" ? (
-                        <User className="mr-1 h-3 w-3" />
-                      ) : conflict.type === "RoomConflict" ? (
-                        <DoorOpen className="mr-1 h-3 w-3" />
-                      ) : (
-                        <AlertTriangle className="mr-1 h-3 w-3" />
-                      )}
-                      <span>
-                        {conflict.type === "TeacherClash" 
-                          ? "Teacher Clash" 
-                          : conflict.type === "RoomConflict" 
-                          ? "Room Conflict" 
-                          : "Time Allocation"}
-                      </span>
+    <ScrollArea className="h-[500px] pr-4">
+      <Accordion type="single" collapsible className="w-full">
+        {conflicts.map((conflict) => (
+          <AccordionItem key={conflict.id} value={conflict.id.toString()}>
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center text-left">
+                {getSeverityIcon(conflict.severity)}
+                <div className="ml-2">
+                  <p className="text-sm font-medium">{getConflictMessage(conflict)}</p>
+                  <div className="flex items-center mt-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3 mr-1" />
+                    <span>
+                      {conflict.day} at {conflict.time}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm">{conflict.day}, {conflict.time}</td>
-                  <td className="px-4 py-3 text-sm">{conflict.description}</td>
-                  <td className="px-4 py-3">
+                  </div>
+                </div>
+              </div>
+            </AccordionTrigger>
+            
+            <AccordionContent>
+              <div className="py-2">
+                <div className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getSeverityColor(conflict.severity)}`}>
+                  Severity: {conflict.severity}
+                </div>
+                
+                <p className="mt-2 text-sm">{conflict.details}</p>
+                
+                <Separator className="my-3" />
+                
+                <div className="flex items-start space-x-2">
+                  <div className="bg-muted rounded-full p-1 h-6 w-6 flex items-center justify-center">
+                    <span className="text-xs">1</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Automated suggestion</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {conflict.resolution || "Move the class to an available time slot"}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+                
+                <div className="mt-4 flex justify-end">
+                  {conflict.resolved ? (
+                    <div className="flex items-center text-green-600 text-sm">
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                      Resolved
+                    </div>
+                  ) : (
                     <Button 
-                      variant="link" 
-                      onClick={() => onViewOptions(conflict)}
-                      className="text-primary hover:underline text-sm p-0"
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleResolve(conflict.id)}
+                      disabled={resolving === conflict.id}
                     >
-                      View Options
+                      {resolving === conflict.id ? (
+                        <>Resolving...</>
+                      ) : (
+                        <>Mark as Resolved</>
+                      )}
                     </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+                  )}
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </ScrollArea>
   );
 }

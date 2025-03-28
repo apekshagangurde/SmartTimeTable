@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Timetables from "@/pages/Timetables";
+import TimetableEditor from "@/pages/TimetableEditor";
 import Teachers from "@/pages/Teachers";
 import Classrooms from "@/pages/Classrooms";
 import Departments from "@/pages/Departments";
@@ -22,6 +23,12 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/timetables" component={Timetables} />
+      <Route path="/timetable/:id">
+        {(params) => <TimetableEditor id={params.id} />}
+      </Route>
+      <Route path="/timetable/view/:id">
+        {(params) => <TimetableEditor id={params.id} readOnly={true} />}
+      </Route>
       <Route path="/teachers" component={Teachers} />
       <Route path="/classrooms" component={Classrooms} />
       <Route path="/departments" component={Departments} />
