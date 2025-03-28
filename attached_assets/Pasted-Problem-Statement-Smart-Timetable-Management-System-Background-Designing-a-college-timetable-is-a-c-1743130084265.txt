@@ -1,0 +1,56 @@
+Problem Statement: Smart Timetable Management System
+Background
+Designing a college timetable is a complex and time-consuming task due to multiple constraints. Currently, scheduling is done manually, leading to teacher clashes, classroom conflicts, and inefficient scheduling. To address this, a Smart Timetable Management System is required, offering drag-and-drop scheduling, real-time conflict detection, and customization options.
+
+Key Features & Functionalities
+1. Initial Setup: Teacher, Classroom, and Department Registration
+✅ Register Teachers – Each teacher is assigned to specific subjects.
+✅ Register Classrooms – Classrooms are mapped to specific Engineering Departments (CSE, IT, Civil, AI & DS, E&TC, etc.).
+✅ Division Selection – While designing the timetable, the user selects which division (A, B, C, etc.) they are creating the timetable for.
+✅ College Time Selection – Class teachers can define college hours (e.g., 8 AM – 3 PM or 10 AM – 5 PM) to customize the timetable design.
+
+2. Visual Timetable Editor (Drag-and-Drop)
+✅ Drag-and-Drop Scheduling – Assign teachers, subjects, and classrooms using an interactive editor.
+✅ Division-Wise Timetable – Admins can design timetables separately for each division.
+✅ Classroom Allocation for Engineering Departments – Ensures classrooms are assigned only to relevant departments to avoid misallocation.
+
+3. Real-Time Conflict Detection & Resolution
+✅ Teacher Clash Prevention – The system warns if a teacher is assigned to multiple classes at the same time.
+✅ Classroom Conflict Detection – Prevents the same classroom from being allocated to two divisions simultaneously.
+✅ Subject Time Allocation Check – Ensures subjects are scheduled correctly within the defined college hours.
+✅ Color-Coded Alerts – Highlights clashes for easy resolution.
+
+4. Teacher Substitutions (Upset Teachers Feature)
+✅ If a teacher is absent, they can be marked as "Upset".
+✅ The system automatically suggests available teachers as replacements.
+✅ Drag-and-drop substitute teacher assignment for quick rescheduling.
+
+5. Editing & Modification Options
+✅ Teachers can edit their own schedules.
+✅ Admins can override or approve changes.
+✅ History log to track changes and revert if needed.
+
+6. Multiple Viewing & Download Options
+✅ Daily & Weekly Views – Users can switch between day-wise and week-wise timetables.
+✅ Download Timetable in PNG, JPG, and PDF formats.
+✅ Printable Versions for offline use.
+
+7. Notifications & Alerts
+✅ Automated notifications for any schedule changes.
+✅ Reminders for teachers and students about upcoming lectures.
+✅ Room Change & Substitution Alerts – Instant updates on lecture adjustments.
+
+8. Advanced Analytics & Insights (Creative Additions)
+✅ Teacher Workload Analysis – Tracks teaching hours for balanced distribution.
+✅ Classroom Utilization Reports – Ensures classrooms are optimally used.
+✅ Student Timetable Lookup – Allows students to easily check their schedules.
+
+How It Works (Workflow)
+1️⃣ Register teachers, subjects, and classrooms.
+2️⃣ Select the engineering department and division (A/B/C) for timetable creation.
+3️⃣ Define the college timing (e.g., 8 AM – 3 PM or 10 AM – 5 PM).
+4️⃣ Use the visual drag-and-drop editor to assign lectures.
+5️⃣ Resolve conflicts using real-time alerts.
+6️⃣ Save and publish the timetable.
+7️⃣ Teachers and students can view/download the timetable.
+
