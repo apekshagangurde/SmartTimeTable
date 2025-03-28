@@ -6,6 +6,12 @@ import Timetables from "@/pages/Timetables";
 import Teachers from "@/pages/Teachers";
 import Classrooms from "@/pages/Classrooms";
 import Departments from "@/pages/Departments";
+import Substitutions from "@/pages/Substitutions";
+import History from "@/pages/History";
+import Notifications from "@/pages/Notifications";
+import Analytics from "@/pages/Analytics";
+import Workload from "@/pages/Workload";
+import Utilization from "@/pages/Utilization";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { useState } from "react";
@@ -19,12 +25,12 @@ function Router() {
       <Route path="/teachers" component={Teachers} />
       <Route path="/classrooms" component={Classrooms} />
       <Route path="/departments" component={Departments} />
-      <Route path="/substitutions" component={NotFound} />
-      <Route path="/history" component={NotFound} />
-      <Route path="/notifications" component={NotFound} />
-      <Route path="/analytics" component={NotFound} />
-      <Route path="/workload" component={NotFound} />
-      <Route path="/utilization" component={NotFound} />
+      <Route path="/substitutions" component={Substitutions} />
+      <Route path="/history" component={History} />
+      <Route path="/notifications" component={Notifications} />
+      <Route path="/analytics" component={Analytics} />
+      <Route path="/workload" component={Workload} />
+      <Route path="/utilization" component={Utilization} />
       <Route component={NotFound} />
     </Switch>
   );
