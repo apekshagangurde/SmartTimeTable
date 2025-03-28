@@ -1,4 +1,4 @@
-import { Department, Division, Teacher, Subject, Classroom, Slot, Conflict } from "../../shared/schema";
+import { Department, Division, Teacher, Subject, Classroom, Slot, Conflict } from "../../../shared/schema";
 
 // Exported type aliases for better readability
 export type DepartmentType = Department;

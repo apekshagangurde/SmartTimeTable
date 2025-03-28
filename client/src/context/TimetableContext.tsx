@@ -50,7 +50,42 @@ interface TimetableContextType {
   isLoading: boolean;
 }
 
-export const TimetableContext = createContext<TimetableContextType | undefined>(undefined);
+// Context with defaultValue to fix type issues
+export const TimetableContext = createContext<TimetableContextType>({
+  // Current selections
+  selectedDepartment: null,
+  setSelectedDepartment: () => null,
+  selectedDivision: null,
+  setSelectedDivision: () => null,
+  collegeStartTime: "08:00",
+  setCollegeStartTime: () => {},
+  collegeEndTime: "16:00",
+  setCollegeEndTime: () => {},
+  currentWeek: "",
+  setCurrentWeek: () => {},
+  
+  // Data
+  departments: [],
+  divisions: [],
+  teachers: [],
+  classrooms: [],
+  subjects: [],
+  slots: [],
+  conflicts: [],
+  
+  // Actions
+  createSlot: async () => {},
+  updateSlot: async () => {},
+  deleteSlot: async () => {},
+  createTeacher: async () => {},
+  markTeacherAsUpset: async () => {},
+  assignSubstitute: async () => {},
+  resolveConflict: async () => {},
+  createTimetable: async () => null,
+  
+  // Loading states
+  isLoading: false
+});
 
 export function TimetableProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
@@ -61,41 +96,41 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
   const [currentWeek, setCurrentWeek] = useState<string>(getCurrentWeekRange());
 
   // Fetch departments
-  const { data: departments = [], isLoading: isDepartmentsLoading } = useQuery({
+  const { data: departments = [] as DepartmentType[], isLoading: isDepartmentsLoading } = useQuery<DepartmentType[]>({
     queryKey: ["/api/departments"],
   });
 
   // Fetch divisions when department changes
-  const { data: divisions = [], isLoading: isDivisionsLoading } = useQuery({
+  const { data: divisions = [] as DivisionType[], isLoading: isDivisionsLoading } = useQuery<DivisionType[]>({
     queryKey: ["/api/divisions", selectedDepartment?.id],
     enabled: !!selectedDepartment,
   });
 
   // Fetch teachers
-  const { data: teachers = [], isLoading: isTeachersLoading } = useQuery({
+  const { data: teachers = [] as TeacherType[], isLoading: isTeachersLoading } = useQuery<TeacherType[]>({
     queryKey: ["/api/teachers"],
   });
 
   // Fetch classrooms filtered by department
-  const { data: classrooms = [], isLoading: isClassroomsLoading } = useQuery({
+  const { data: classrooms = [] as ClassroomType[], isLoading: isClassroomsLoading } = useQuery<ClassroomType[]>({
     queryKey: ["/api/classrooms", selectedDepartment?.id],
     enabled: !!selectedDepartment,
   });
 
   // Fetch subjects filtered by department
-  const { data: subjects = [], isLoading: isSubjectsLoading } = useQuery({
+  const { data: subjects = [] as SubjectType[], isLoading: isSubjectsLoading } = useQuery<SubjectType[]>({
     queryKey: ["/api/subjects", selectedDepartment?.id],
     enabled: !!selectedDepartment,
   });
 
   // Fetch slots for the selected division and week
-  const { data: slots = [], isLoading: isSlotsLoading } = useQuery({
+  const { data: slots = [] as SlotType[], isLoading: isSlotsLoading } = useQuery<SlotType[]>({
     queryKey: ["/api/slots", selectedDivision?.id, currentWeek],
     enabled: !!selectedDivision,
   });
 
   // Fetch conflicts
-  const { data: conflicts = [], isLoading: isConflictsLoading } = useQuery({
+  const { data: conflicts = [] as ConflictType[], isLoading: isConflictsLoading } = useQuery<ConflictType[]>({
     queryKey: ["/api/conflicts", selectedDivision?.id],
     enabled: !!selectedDivision,
   });
@@ -289,13 +324,13 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
 
   // Set default department and division if available and none selected
   useEffect(() => {
-    if (departments.length > 0 && !selectedDepartment) {
+    if (departments && departments.length > 0 && !selectedDepartment) {
       setSelectedDepartment(departments[0]);
     }
   }, [departments, selectedDepartment]);
 
   useEffect(() => {
-    if (divisions.length > 0 && !selectedDivision) {
+    if (divisions && divisions.length > 0 && !selectedDivision) {
       setSelectedDivision(divisions[0]);
     }
   }, [divisions, selectedDivision]);

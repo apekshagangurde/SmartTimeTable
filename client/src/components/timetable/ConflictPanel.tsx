@@ -73,6 +73,20 @@ export default function ConflictPanel({ conflicts, onResolve }: ConflictPanelPro
     }
   };
   
+  if (!conflicts || conflicts.length === 0) {
+    return (
+      <ScrollArea className="h-[500px] pr-4">
+        <div className="flex flex-col items-center justify-center h-[400px]">
+          <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
+          <p className="text-lg font-medium text-center">No conflicts detected</p>
+          <p className="text-sm text-muted-foreground text-center mt-2">
+            Your timetable is running smoothly with no scheduling conflicts
+          </p>
+        </div>
+      </ScrollArea>
+    );
+  }
+  
   return (
     <ScrollArea className="h-[500px] pr-4">
       <Accordion type="single" collapsible className="w-full">

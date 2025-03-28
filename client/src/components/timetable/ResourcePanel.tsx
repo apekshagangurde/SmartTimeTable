@@ -23,7 +23,11 @@ type ResourcePanelProps = {
 function TeacherItem({ teacher }: { teacher: TeacherType }) {
   const [{ isDragging }, drag] = useDrag({
     type: ItemTypes.TEACHER,
-    item: { id: teacher.id, type: 'teacher', name: teacher.name },
+    item: { 
+      id: teacher.id, 
+      type: 'teacher', 
+      name: teacher.user?.name || `Teacher ${teacher.id}` 
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     })
@@ -40,7 +44,7 @@ function TeacherItem({ teacher }: { teacher: TeacherType }) {
     >
       <UserCircle2 className={`h-5 w-5 mr-2 ${isUpset ? "text-amber-500" : "text-blue-500"}`} />
       <div className="flex-1">
-        <div className="font-medium text-sm">{teacher.name}</div>
+        <div className="font-medium text-sm">{teacher.user?.name || `Teacher ${teacher.id}`}</div>
         {isUpset && (
           <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200">
             Upset
@@ -55,7 +59,11 @@ function TeacherItem({ teacher }: { teacher: TeacherType }) {
 function SubjectItem({ subject }: { subject: SubjectType }) {
   const [{ isDragging }, drag] = useDrag({
     type: ItemTypes.SUBJECT,
-    item: { id: subject.id, type: 'subject', name: subject.name },
+    item: { 
+      id: subject.id, 
+      type: 'subject', 
+      name: subject.name || `Subject ${subject.id}`
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     })
@@ -71,7 +79,7 @@ function SubjectItem({ subject }: { subject: SubjectType }) {
       <BookOpen className="h-5 w-5 mr-2 text-purple-500" />
       <div className="flex-1">
         <div className="font-medium text-sm">{subject.name}</div>
-        <div className="text-xs text-muted-foreground">{subject.code}</div>
+        <div className="text-xs text-muted-foreground">{subject.shortName} - {subject.credits} Credits</div>
       </div>
     </div>
   );
@@ -81,7 +89,11 @@ function SubjectItem({ subject }: { subject: SubjectType }) {
 function ClassroomItem({ classroom }: { classroom: ClassroomType }) {
   const [{ isDragging }, drag] = useDrag({
     type: ItemTypes.CLASSROOM,
-    item: { id: classroom.id, type: 'classroom', name: classroom.number },
+    item: { 
+      id: classroom.id, 
+      type: 'classroom', 
+      name: classroom.name || `Room ${classroom.id}` 
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     })
@@ -96,7 +108,7 @@ function ClassroomItem({ classroom }: { classroom: ClassroomType }) {
     >
       <Home className="h-5 w-5 mr-2 text-green-500" />
       <div className="flex-1">
-        <div className="font-medium text-sm">{classroom.number}</div>
+        <div className="font-medium text-sm">{classroom.name}</div>
         <div className="text-xs text-muted-foreground">Capacity: {classroom.capacity}</div>
       </div>
     </div>
@@ -108,19 +120,19 @@ export default function ResourcePanel({ teachers, subjects, classrooms }: Resour
   const [subjectSearch, setSubjectSearch] = useState("");
   const [classroomSearch, setClassroomSearch] = useState("");
   
-  // Filter resources based on search terms
-  const filteredTeachers = teachers.filter(teacher => 
-    teacher.name.toLowerCase().includes(teacherSearch.toLowerCase())
-  );
+  // Filter resources based on search terms - check for null/undefined
+  const filteredTeachers = teachers?.filter(teacher => 
+    teacher.user?.name?.toLowerCase().includes(teacherSearch.toLowerCase())
+  ) || [];
   
-  const filteredSubjects = subjects.filter(subject => 
-    subject.name.toLowerCase().includes(subjectSearch.toLowerCase()) ||
-    subject.code.toLowerCase().includes(subjectSearch.toLowerCase())
-  );
+  const filteredSubjects = subjects?.filter(subject => 
+    subject.name?.toLowerCase().includes(subjectSearch.toLowerCase()) ||
+    subject.shortName?.toLowerCase().includes(subjectSearch.toLowerCase())
+  ) || [];
   
-  const filteredClassrooms = classrooms.filter(classroom => 
-    classroom.number.toLowerCase().includes(classroomSearch.toLowerCase())
-  );
+  const filteredClassrooms = classrooms?.filter(classroom => 
+    classroom.name?.toLowerCase().includes(classroomSearch.toLowerCase())
+  ) || [];
   
   return (
     <Card>
