@@ -818,6 +818,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  firebaseRouter.patch("/slots/:id", async (req, res) => {
+    try {
+      const slotId = req.params.id;
+      const updateData = req.body;
+      
+      // Validate at least some data was provided
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ message: "No update data provided" });
+      }
+      
+      // Convert any numeric IDs to strings for Firebase
+      const processedUpdateData = { ...updateData };
+      if (updateData.timetableId) processedUpdateData.timetableId = updateData.timetableId.toString();
+      if (updateData.subjectId) processedUpdateData.subjectId = updateData.subjectId.toString();
+      if (updateData.teacherId) processedUpdateData.teacherId = updateData.teacherId.toString();
+      if (updateData.classroomId) processedUpdateData.classroomId = updateData.classroomId.toString();
+      if (updateData.originalTeacherId) processedUpdateData.originalTeacherId = updateData.originalTeacherId.toString();
+      
+      const updatedSlot = await firebaseService.updateSlot(slotId, processedUpdateData);
+      
+      // Re-detect conflicts after updating a slot
+      await firebaseService.detectAndRecordConflicts();
+      
+      res.json(updatedSlot);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to update slot in Firebase" });
+    }
+  });
+  
+  firebaseRouter.delete("/slots/:id", async (req, res) => {
+    try {
+      const slotId = req.params.id;
+      await firebaseService.deleteSlot(slotId);
+      
+      // Re-detect conflicts after deleting a slot
+      await firebaseService.detectAndRecordConflicts();
+      
+      res.status(204).send();
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to delete slot from Firebase" });
+    }
+  });
+  
+  firebaseRouter.post("/slots/:id/substitute", async (req, res) => {
+    try {
+      const slotId = req.params.id;
+      const { newTeacherId } = req.body;
+      
+      if (!newTeacherId) {
+        return res.status(400).json({ message: "newTeacherId is required" });
+      }
+      
+      const updatedSlot = await firebaseService.assignSubstitute(slotId, newTeacherId.toString());
+      
+      if (!updatedSlot) {
+        return res.status(404).json({ message: "Slot not found in Firebase" });
+      }
+      
+      res.json(updatedSlot);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to assign substitute in Firebase" });
+    }
+  });
+  
+  // Conflicts
+  firebaseRouter.get("/conflicts", async (req, res) => {
+    try {
+      const divisionId = req.query.divisionId ? req.query.divisionId.toString() : undefined;
+      const conflicts = await firebaseService.getConflicts(divisionId);
+      res.json(conflicts);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to fetch conflicts from Firebase" });
+    }
+  });
+  
+  firebaseRouter.patch("/conflicts/:id/resolve", async (req, res) => {
+    try {
+      const conflictId = req.params.id;
+      const resolvedConflict = await firebaseService.resolveConflict(conflictId);
+      
+      if (!resolvedConflict) {
+        return res.status(404).json({ message: "Conflict not found in Firebase" });
+      }
+      
+      res.json(resolvedConflict);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to resolve conflict in Firebase" });
+    }
+  });
+  
   // Create HTTP server
   const httpServer = createServer(app);
   

@@ -110,53 +110,53 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
 
   // Fetch departments
   const { data: departments = [] as DepartmentType[], isLoading: isDepartmentsLoading } = useQuery<DepartmentType[]>({
-    queryKey: ["/api/departments"],
+    queryKey: ["/firebase-api/departments"],
   });
 
   // Fetch divisions when department changes
   const { data: divisions = [] as DivisionType[], isLoading: isDivisionsLoading } = useQuery<DivisionType[]>({
-    queryKey: ["/api/divisions", selectedDepartment?.id],
+    queryKey: ["/firebase-api/divisions", selectedDepartment?.id],
     enabled: !!selectedDepartment,
   });
 
   // Fetch teachers
   const { data: teachers = [] as TeacherType[], isLoading: isTeachersLoading } = useQuery<TeacherType[]>({
-    queryKey: ["/api/teachers"],
+    queryKey: ["/firebase-api/teachers"],
   });
 
   // Fetch classrooms filtered by department
   const { data: classrooms = [] as ClassroomType[], isLoading: isClassroomsLoading } = useQuery<ClassroomType[]>({
-    queryKey: ["/api/classrooms", selectedDepartment?.id],
+    queryKey: ["/firebase-api/classrooms", selectedDepartment?.id],
     enabled: !!selectedDepartment,
   });
 
   // Fetch subjects filtered by department
   const { data: subjects = [] as SubjectType[], isLoading: isSubjectsLoading } = useQuery<SubjectType[]>({
-    queryKey: ["/api/subjects", selectedDepartment?.id],
+    queryKey: ["/firebase-api/subjects", selectedDepartment?.id],
     enabled: !!selectedDepartment,
   });
 
   // Fetch slots for the selected division and week
   const { data: slots = [] as SlotType[], isLoading: isSlotsLoading } = useQuery<SlotType[]>({
-    queryKey: ["/api/slots", selectedDivision?.id, currentWeek],
+    queryKey: ["/firebase-api/slots", selectedDivision?.id, currentWeek],
     enabled: !!selectedDivision,
   });
 
   // Fetch conflicts
   const { data: conflicts = [] as ConflictType[], isLoading: isConflictsLoading } = useQuery<ConflictType[]>({
-    queryKey: ["/api/conflicts", selectedDivision?.id],
+    queryKey: ["/firebase-api/conflicts", selectedDivision?.id],
     enabled: !!selectedDivision,
   });
 
   // Create slot mutation
   const createSlotMutation = useMutation({
     mutationFn: async (slot: Partial<SlotType>) => {
-      const res = await apiRequest("POST", "/api/slots", slot);
+      const res = await apiRequest("POST", "/firebase-api/slots", slot);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/slots"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/conflicts"] });
+      queryClient.invalidateQueries({ queryKey: ["/firebase-api/slots"] });
+      queryClient.invalidateQueries({ queryKey: ["/firebase-api/conflicts"] });
       toast({
         title: "Success",
         description: "Slot created successfully",
@@ -174,12 +174,12 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
   // Update slot mutation
   const updateSlotMutation = useMutation({
     mutationFn: async ({ id, slot }: { id: number; slot: Partial<SlotType> }) => {
-      const res = await apiRequest("PATCH", `/api/slots/${id}`, slot);
+      const res = await apiRequest("PATCH", `/firebase-api/slots/${id}`, slot);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/slots"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/conflicts"] });
+      queryClient.invalidateQueries({ queryKey: ["/firebase-api/slots"] });
+      queryClient.invalidateQueries({ queryKey: ["/firebase-api/conflicts"] });
       toast({
         title: "Success",
         description: "Slot updated successfully",
@@ -197,11 +197,11 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
   // Delete slot mutation
   const deleteSlotMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/slots/${id}`);
+      await apiRequest("DELETE", `/firebase-api/slots/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/slots"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/conflicts"] });
+      queryClient.invalidateQueries({ queryKey: ["/firebase-api/slots"] });
+      queryClient.invalidateQueries({ queryKey: ["/firebase-api/conflicts"] });
       toast({
         title: "Success",
         description: "Slot deleted successfully",
@@ -219,11 +219,11 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
   // Create teacher mutation
   const createTeacherMutation = useMutation({
     mutationFn: async (teacher: { userId: number, isUpset: boolean }) => {
-      const res = await apiRequest("POST", "/api/teachers", teacher);
+      const res = await apiRequest("POST", "/firebase-api/teachers", teacher);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["/firebase-api/teachers"] });
       toast({
         title: "Success",
         description: "Teacher created successfully",
@@ -241,11 +241,11 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
   // Mark teacher as upset mutation
   const markTeacherAsUpsetMutation = useMutation({
     mutationFn: async ({ teacherId, isUpset }: { teacherId: number; isUpset: boolean }) => {
-      const res = await apiRequest("PATCH", `/api/teachers/${teacherId}/upset`, { isUpset });
+      const res = await apiRequest("PATCH", `/firebase-api/teachers/${teacherId}/upset`, { isUpset });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["/firebase-api/teachers"] });
       toast({
         title: "Success",
         description: "Teacher status updated successfully",
@@ -263,11 +263,11 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
   // Assign substitute mutation
   const assignSubstituteMutation = useMutation({
     mutationFn: async ({ slotId, newTeacherId }: { slotId: number; newTeacherId: number }) => {
-      const res = await apiRequest("POST", `/api/slots/${slotId}/substitute`, { newTeacherId });
+      const res = await apiRequest("POST", `/firebase-api/slots/${slotId}/substitute`, { newTeacherId });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/slots"] });
+      queryClient.invalidateQueries({ queryKey: ["/firebase-api/slots"] });
       toast({
         title: "Success",
         description: "Substitute assigned successfully",
@@ -285,11 +285,11 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
   // Resolve conflict mutation
   const resolveConflictMutation = useMutation({
     mutationFn: async (conflictId: number) => {
-      const res = await apiRequest("PATCH", `/api/conflicts/${conflictId}/resolve`, {});
+      const res = await apiRequest("PATCH", `/firebase-api/conflicts/${conflictId}/resolve`, {});
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/conflicts"] });
+      queryClient.invalidateQueries({ queryKey: ["/firebase-api/conflicts"] });
       toast({
         title: "Success",
         description: "Conflict resolved successfully",
@@ -315,11 +315,11 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
         updatedAt: now,
       };
       
-      const res = await apiRequest("POST", "/api/timetables", timetableWithDates);
+      const res = await apiRequest("POST", "/firebase-api/timetables", timetableWithDates);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/timetables"] });
+      queryClient.invalidateQueries({ queryKey: ["/firebase-api/timetables"] });
       toast({
         title: "Success",
         description: "Timetable created successfully",
@@ -422,19 +422,19 @@ export function TimetableProvider({ children }: { children: React.ReactNode }) {
     
     // Refetch functions
     refetchDepartments: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      await queryClient.invalidateQueries({ queryKey: ["/firebase-api/departments"] });
     },
     refetchTeachers: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/teachers"] });
+      await queryClient.invalidateQueries({ queryKey: ["/firebase-api/teachers"] });
     },
     refetchClassrooms: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/classrooms"] });
+      await queryClient.invalidateQueries({ queryKey: ["/firebase-api/classrooms"] });
     },
     refetchSubjects: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
+      await queryClient.invalidateQueries({ queryKey: ["/firebase-api/subjects"] });
     },
     refetchSlots: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/slots"] });
+      await queryClient.invalidateQueries({ queryKey: ["/firebase-api/slots"] });
     },
     
     // Loading state
