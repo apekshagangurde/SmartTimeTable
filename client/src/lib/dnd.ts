@@ -1,90 +1,270 @@
-import { GridCellPosition, WeekdayType } from "../types/timetable";
+import { Slot, Teacher, Subject, Classroom } from "@shared/schema";
+import { canTeacherBeAssigned } from "./conflicts";
+import { firebaseApiRequest } from "./queryClient";
+import { queryClient } from "./queryClient";
 
-// Define the types for draggable items
+// Define DnD item types
 export const ItemTypes = {
-  TEACHER: 'teacher',
-  CLASSROOM: 'classroom',
-  SUBJECT: 'subject',
-  SLOT: 'slot',
-  CLASS: 'class'
+  TEACHER: "teacher",
+  SUBJECT: "subject",
+  CLASSROOM: "classroom",
+  SLOT: "slot",
 };
 
-// Convert time string to minutes for calculations
-export const timeToMinutes = (time: string): number => {
-  const [hours, minutes] = time.split(':').map(Number);
-  return hours * 60 + minutes;
-};
+// Interface for drag items
+export interface DragItem {
+  type: string;
+  id: number;
+  name: string;
+  data: any;
+}
 
-// Convert minutes back to time string
-export const minutesToTime = (minutes: number): string => {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-};
+// Interface for drop result
+export interface DropResult {
+  success: boolean;
+  message?: string;
+  slot?: Slot;
+}
 
-// Calculate the position for a slot based on the day and times
-export const calculateSlotPosition = (
-  day: WeekdayType,
-  startTime: string,
-  endTime: string,
-  cellHeight: number = 60,
-  cellWidth: number = 100
-): { top: number; height: number; left: number; width: number } => {
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayIndex = days.indexOf(day);
-  
-  const startMinutes = timeToMinutes(startTime);
-  const endMinutes = timeToMinutes(endTime);
-  
-  // 8:00 AM (480 minutes) is the start of our grid
-  const startOfDay = 8 * 60; 
-  
-  const top = ((startMinutes - startOfDay) / 60) * cellHeight;
-  const height = ((endMinutes - startMinutes) / 60) * cellHeight;
-  const left = dayIndex * cellWidth;
-  
-  return { top, height, left, width: cellWidth };
-};
-
-// Get grid cell from mouse position
-export const getGridCellFromPoint = (
-  x: number,
-  y: number,
-  gridRef: React.RefObject<HTMLDivElement>,
-  cellWidth: number = 100,
-  cellHeight: number = 60
-): GridCellPosition | null => {
-  if (!gridRef.current) return null;
-  
-  const rect = gridRef.current.getBoundingClientRect();
-  const relX = x - rect.left;
-  const relY = y - rect.top;
-  
-  // Out of bounds
-  if (relX < 0 || relY < 0 || relX > rect.width || relY > rect.height) {
-    return null;
+// Function to validate if an item can be dropped in a slot
+export async function validateDrop(
+  itemType: string,
+  itemId: number,
+  slotId: number,
+  timetableId: number,
+  slots: Slot[],
+  teachers: Teacher[],
+  subjects: Subject[],
+  classrooms: Classroom[]
+): Promise<DropResult> {
+  // Find the target slot
+  const targetSlot = slots.find(slot => slot.id === slotId);
+  if (!targetSlot) {
+    return { success: false, message: "Target slot not found" };
   }
   
-  // Adjust for the first column (times)
-  const adjustedX = relX - 80; // 80px for the time column
-  if (adjustedX < 0) return null;
-  
-  const dayIndex = Math.floor(adjustedX / cellWidth);
-  const hour = Math.floor(relY / cellHeight) + 8; // 8 AM start
-  
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  
-  if (dayIndex < 0 || dayIndex >= days.length || hour < 8 || hour > 18) {
-    return null;
+  // Different validation based on item type
+  switch (itemType) {
+    case ItemTypes.TEACHER:
+      // Check if the teacher is already assigned to another slot at the same time
+      const teacher = teachers.find(t => t.id === itemId);
+      if (!teacher) {
+        return { success: false, message: "Teacher not found" };
+      }
+      
+      const teacherAssignmentCheck = await canTeacherBeAssigned(targetSlot, itemId, slots);
+      if (!teacherAssignmentCheck.canAssign) {
+        return { success: false, message: teacherAssignmentCheck.reason };
+      }
+      
+      return { success: true };
+      
+    case ItemTypes.SUBJECT:
+      // Check if the subject exists
+      const subject = subjects.find(s => s.id === itemId);
+      if (!subject) {
+        return { success: false, message: "Subject not found" };
+      }
+      
+      return { success: true };
+      
+    case ItemTypes.CLASSROOM:
+      // Check if the classroom is already in use at this time
+      const classroom = classrooms.find(c => c.id === itemId);
+      if (!classroom) {
+        return { success: false, message: "Classroom not found" };
+      }
+      
+      // Check if classroom is in use in another slot at the same time
+      const classroomConflict = slots.find(
+        slot => 
+          slot.id !== slotId && 
+          slot.classroomId === itemId &&
+          slot.day === targetSlot.day &&
+          ((slot.startTime <= targetSlot.startTime && slot.endTime > targetSlot.startTime) ||
+           (slot.startTime >= targetSlot.startTime && slot.startTime < targetSlot.endTime))
+      );
+      
+      if (classroomConflict) {
+        return { 
+          success: false, 
+          message: `Classroom already in use at this time (${classroomConflict.day} ${classroomConflict.startTime} - ${classroomConflict.endTime})`
+        };
+      }
+      
+      return { success: true };
+      
+    default:
+      return { success: false, message: "Invalid item type" };
   }
-  
-  return {
-    day: days[dayIndex] as WeekdayType,
-    hour
-  };
-};
+}
 
-// Convert grid cell to time string
-export const gridCellToTimeString = (position: GridCellPosition): string => {
-  return `${String(position.hour).padStart(2, '0')}:00`;
-};
+// Function to handle dropping a draggable item in a slot
+export async function handleDrop(
+  itemType: string,
+  itemId: number,
+  slotId: number,
+  timetableId: number,
+  useFirebase: boolean = false
+): Promise<DropResult> {
+  try {
+    // Prepare update data based on item type
+    let updateData: any = {};
+    
+    switch (itemType) {
+      case ItemTypes.TEACHER:
+        updateData = { teacherId: itemId };
+        break;
+      case ItemTypes.SUBJECT:
+        updateData = { subjectId: itemId };
+        break;
+      case ItemTypes.CLASSROOM:
+        updateData = { classroomId: itemId };
+        break;
+      default:
+        return { success: false, message: "Invalid item type" };
+    }
+    
+    // Update the slot - using either regular API or Firebase API
+    let updatedSlot;
+    
+    if (useFirebase) {
+      const response = await firebaseApiRequest(
+        'PATCH',
+        `slots/${slotId}`,
+        updateData
+      );
+      updatedSlot = await response.json();
+      
+      // Invalidate Firebase queries
+      queryClient.invalidateQueries({ queryKey: ['/firebase-api/slots'] });
+      queryClient.invalidateQueries({ queryKey: [`/firebase-api/slots?timetableId=${timetableId}`] });
+    } else {
+      const response = await fetch(`/api/slots/${slotId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        return { success: false, message: `Failed to update slot: ${errorText}` };
+      }
+      
+      updatedSlot = await response.json();
+      
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['/api/slots'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/slots?timetableId=${timetableId}`] });
+    }
+    
+    return { 
+      success: true, 
+      slot: updatedSlot
+    };
+  } catch (error) {
+    console.error('Error in handleDrop:', error);
+    return { 
+      success: false, 
+      message: `An error occurred while updating the slot: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+}
+
+// Function to create a new slot
+export async function createSlot(
+  slotData: any,
+  useFirebase: boolean = false
+): Promise<{ success: boolean; slot?: Slot; message?: string }> {
+  try {
+    let newSlot;
+    
+    if (useFirebase) {
+      // Convert numeric IDs to strings for Firebase
+      const firebaseSlotData = {
+        ...slotData,
+        timetableId: slotData.timetableId.toString(),
+        subjectId: slotData.subjectId.toString(),
+        teacherId: slotData.teacherId.toString(),
+        classroomId: slotData.classroomId.toString()
+      };
+      
+      const response = await firebaseApiRequest('POST', 'slots', firebaseSlotData);
+      newSlot = await response.json();
+      
+      // Invalidate Firebase queries
+      queryClient.invalidateQueries({ queryKey: ['/firebase-api/slots'] });
+      queryClient.invalidateQueries({ queryKey: [`/firebase-api/slots?timetableId=${slotData.timetableId}`] });
+    } else {
+      const response = await fetch('/api/slots', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(slotData),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        return { success: false, message: `Failed to create slot: ${errorText}` };
+      }
+      
+      newSlot = await response.json();
+      
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['/api/slots'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/slots?timetableId=${slotData.timetableId}`] });
+    }
+    
+    return { 
+      success: true, 
+      slot: newSlot
+    };
+  } catch (error) {
+    console.error('Error in createSlot:', error);
+    return { 
+      success: false, 
+      message: `An error occurred while creating the slot: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+}
+
+// Function to delete a slot
+export async function deleteSlot(
+  slotId: number,
+  timetableId: number,
+  useFirebase: boolean = false
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    if (useFirebase) {
+      await firebaseApiRequest('DELETE', `slots/${slotId}`, undefined);
+      
+      // Invalidate Firebase queries
+      queryClient.invalidateQueries({ queryKey: ['/firebase-api/slots'] });
+      queryClient.invalidateQueries({ queryKey: [`/firebase-api/slots?timetableId=${timetableId}`] });
+    } else {
+      const response = await fetch(`/api/slots/${slotId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        return { success: false, message: `Failed to delete slot: ${errorText}` };
+      }
+      
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['/api/slots'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/slots?timetableId=${timetableId}`] });
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error in deleteSlot:', error);
+    return { 
+      success: false, 
+      message: `An error occurred while deleting the slot: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+}

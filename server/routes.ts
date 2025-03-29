@@ -1,7 +1,9 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { csvStorage } from "./csv-storage";
+import { firebaseService } from "./firebase-service";
+import { initializeMigration } from "./migration-service";
 import { z } from "zod";
 import { 
   insertDepartmentSchema, 
@@ -18,8 +20,16 @@ import {
 } from "@shared/schema";
 import { format } from 'date-fns';
 import { WebSocketServer, WebSocket } from 'ws';
+import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize migration from existing storage systems to Firebase
+  try {
+    await initializeMigration();
+    log("Firebase migration initialized", "routes");
+  } catch (error) {
+    log(`Error initializing Firebase migration: ${error}`, "routes");
+  }
   // API routes
   
   // Users
@@ -478,8 +488,219 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Firebase-specific API routes
+  // These routes will help us transition to using Firebase for data storage
+  
+  // Firebase API namespace
+  const firebaseRouter = express.Router();
+  app.use('/firebase-api', firebaseRouter);
+  
+  // Firebase Users
+  firebaseRouter.get("/users", async (req, res) => {
+    try {
+      const users = await firebaseService.getUsers();
+      res.json(users);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to fetch users from Firebase" });
+    }
+  });
+  
+  firebaseRouter.post("/users", async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      const newUser = await firebaseService.createUser({
+        ...userData
+        // No need to convert id as it's not in the insert schema
+      });
+      res.status(201).json(newUser);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create user in Firebase" });
+    }
+  });
+  
+  // Firebase Departments
+  firebaseRouter.get("/departments", async (req, res) => {
+    try {
+      const departments = await firebaseService.getDepartments();
+      res.json(departments);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to fetch departments from Firebase" });
+    }
+  });
+  
+  firebaseRouter.post("/departments", async (req, res) => {
+    try {
+      const departmentData = insertDepartmentSchema.parse(req.body);
+      const newDepartment = await firebaseService.createDepartment({
+        ...departmentData
+        // No need to convert id as it's not in the insert schema
+      });
+      res.status(201).json(newDepartment);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid department data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create department in Firebase" });
+    }
+  });
+  
+  // Firebase Teachers
+  firebaseRouter.get("/teachers", async (req, res) => {
+    try {
+      const teachers = await firebaseService.getTeachers();
+      res.json(teachers);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to fetch teachers from Firebase" });
+    }
+  });
+  
+  firebaseRouter.patch("/teachers/:id/upset", async (req, res) => {
+    try {
+      const teacherId = req.params.id;
+      const { isUpset } = req.body;
+      
+      if (typeof isUpset !== 'boolean') {
+        return res.status(400).json({ message: "isUpset must be a boolean" });
+      }
+      
+      const updatedTeacher = await firebaseService.updateTeacherUpsetStatus(teacherId, isUpset);
+      
+      if (!updatedTeacher) {
+        return res.status(404).json({ message: "Teacher not found in Firebase" });
+      }
+      
+      res.json(updatedTeacher);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to update teacher status in Firebase" });
+    }
+  });
+  
+  // Firebase Timetables
+  firebaseRouter.get("/timetables", async (req, res) => {
+    try {
+      const divisionId = req.query.divisionId ? req.query.divisionId.toString() : undefined;
+      const timetables = await firebaseService.getTimetables(divisionId);
+      res.json(timetables);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to fetch timetables from Firebase" });
+    }
+  });
+  
+  firebaseRouter.post("/timetables", async (req, res) => {
+    try {
+      const timetableData = insertTimetableSchema.parse(req.body);
+      // Now let's properly pass the data to Firebase
+      const newTimetable = await firebaseService.createTimetable({
+        ...timetableData,
+        divisionId: timetableData.divisionId.toString(),
+        createdBy: timetableData.createdBy.toString()
+      });
+      res.status(201).json(newTimetable);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid timetable data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create timetable in Firebase" });
+    }
+  });
+  
+  // Firebase Slots
+  firebaseRouter.get("/slots", async (req, res) => {
+    try {
+      const timetableId = req.query.timetableId ? req.query.timetableId.toString() : undefined;
+      const divisionId = req.query.divisionId ? req.query.divisionId.toString() : undefined;
+      const day = req.query.day as string | undefined;
+      
+      const slots = await firebaseService.getSlots(timetableId, divisionId, day);
+      res.json(slots);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to fetch slots from Firebase" });
+    }
+  });
+  
+  firebaseRouter.post("/slots", async (req, res) => {
+    try {
+      const slotData = insertSlotSchema.parse(req.body);
+      // Convert numeric IDs to strings for Firebase
+      const newSlot = await firebaseService.createSlot({
+        ...slotData,
+        timetableId: slotData.timetableId.toString(),
+        subjectId: slotData.subjectId.toString(),
+        teacherId: slotData.teacherId.toString(),
+        classroomId: slotData.classroomId.toString(),
+        originalTeacherId: slotData.originalTeacherId ? slotData.originalTeacherId.toString() : null
+      });
+      
+      // Detect conflicts after creating a new slot
+      await firebaseService.detectAndRecordConflicts();
+      
+      res.status(201).json(newSlot);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid slot data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create slot in Firebase" });
+    }
+  });
+  
   // Create HTTP server
   const httpServer = createServer(app);
-
+  
+  // Add WebSocket server
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Handle WebSocket connections
+  wss.on('connection', (ws) => {
+    log('WebSocket client connected', 'websocket');
+    
+    // Send initial data
+    ws.send(JSON.stringify({ type: 'connection', message: 'Connected to timetable server' }));
+    
+    // Handle messages from clients
+    ws.on('message', async (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        log(`Received message: ${JSON.stringify(data)}`, 'websocket');
+        
+        // Handle different message types
+        if (data.type === 'ping') {
+          ws.send(JSON.stringify({ type: 'pong', timestamp: new Date().toISOString() }));
+        }
+      } catch (error) {
+        log(`WebSocket error: ${error}`, 'websocket');
+      }
+    });
+    
+    // Handle disconnection
+    ws.on('close', () => {
+      log('WebSocket client disconnected', 'websocket');
+    });
+  });
+  
+  // Broadcast updates to all connected clients
+  setInterval(() => {
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({
+          type: 'heartbeat',
+          timestamp: new Date().toISOString()
+        }));
+      }
+    });
+  }, 30000); // Send every 30 seconds
+  
   return httpServer;
 }

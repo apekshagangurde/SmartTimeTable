@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { initializeMigration } from "./migration-service";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +38,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize Firebase migration
+  try {
+    await initializeMigration();
+    log("Firebase migration initialized on server startup", "migration");
+  } catch (error) {
+    log(`Error initializing Firebase migration on server startup: ${error}`, "migration");
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -73,6 +82,7 @@ app.use((req, res, next) => {
   }, () => {
     log(`Server successfully started and serving on port ${port}`);
     log(`Access the application at http://localhost:${port}`);
+    log(`Firebase API available at http://localhost:${port}/firebase-api/*`, "firebase");
   });
   
   // Add error handling for the server

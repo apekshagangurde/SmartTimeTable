@@ -23,13 +23,19 @@ export async function apiRequest(
   return res;
 }
 
+// Utility function to determine if a URL is for the Firebase API
+function isFirebaseApiUrl(url: string): boolean {
+  return url.startsWith('/firebase-api/');
+}
+
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    const url = queryKey[0] as string;
+    const res = await fetch(url, {
       credentials: "include",
     });
 
@@ -38,8 +44,25 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    const data = await res.json();
+    
+    // Special handling for Firebase API responses
+    if (isFirebaseApiUrl(url)) {
+      console.log("Using Firebase API data:", data);
+    }
+    
+    return data;
   };
+
+// Specific function for Firebase API requests
+export async function firebaseApiRequest(
+  method: string,
+  endpoint: string,
+  data?: unknown | undefined,
+): Promise<Response> {
+  const url = `/firebase-api/${endpoint}`;
+  return apiRequest(method, url, data);
+}
 
 export const queryClient = new QueryClient({
   defaultOptions: {
