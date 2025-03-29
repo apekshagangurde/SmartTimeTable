@@ -2,3 +2,5 @@ id,name,capacity,departmentId
 1,b100,30,3
 2,M405,30,1
 3,F234,30,6
+4,B102,30,6
+5,B012,30,1

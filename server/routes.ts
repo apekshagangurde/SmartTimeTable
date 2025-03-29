@@ -562,6 +562,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  firebaseRouter.get("/teachers/:id", async (req, res) => {
+    try {
+      const teacherId = req.params.id;
+      const teacher = await firebaseService.getTeacher(teacherId);
+      
+      if (!teacher) {
+        return res.status(404).json({ message: "Teacher not found in Firebase" });
+      }
+      
+      res.json(teacher);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to fetch teacher from Firebase" });
+    }
+  });
+  
+  firebaseRouter.post("/teachers", async (req, res) => {
+    try {
+      const teacherData = insertTeacherSchema.parse(req.body);
+      
+      // Check if user exists
+      const userId = teacherData.userId;
+      const user = await firebaseService.getUser(userId.toString());
+      
+      if (!user) {
+        return res.status(400).json({ message: "User not found for this teacher" });
+      }
+      
+      // Include the name and email from the user
+      const newTeacher = await firebaseService.createTeacher({
+        ...teacherData,
+        name: user.name,
+        email: user.email,
+        isUpset: teacherData.isUpset || false
+      });
+      
+      res.status(201).json(newTeacher);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid teacher data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create teacher in Firebase" });
+    }
+  });
+  
+  firebaseRouter.delete("/teachers/:id", async (req, res) => {
+    try {
+      const teacherId = req.params.id;
+      await firebaseService.deleteTeacher(teacherId);
+      res.status(204).send();
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to delete teacher from Firebase" });
+    }
+  });
+  
+  firebaseRouter.patch("/teachers/:id", async (req, res) => {
+    try {
+      const teacherId = req.params.id;
+      const updateData = req.body;
+      
+      // Validate at least some data was provided
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ message: "No update data provided" });
+      }
+      
+      const updatedTeacher = await firebaseService.updateTeacher(teacherId, updateData);
+      
+      if (!updatedTeacher) {
+        return res.status(404).json({ message: "Teacher not found in Firebase" });
+      }
+      
+      res.json(updatedTeacher);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to update teacher in Firebase" });
+    }
+  });
+  
   firebaseRouter.patch("/teachers/:id/upset", async (req, res) => {
     try {
       const teacherId = req.params.id;
@@ -581,6 +661,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       log(`Firebase API error: ${error}`, "routes");
       res.status(500).json({ message: "Failed to update teacher status in Firebase" });
+    }
+  });
+  
+  // Firebase Classrooms
+  firebaseRouter.get("/classrooms", async (req, res) => {
+    try {
+      const departmentId = req.query.departmentId ? req.query.departmentId.toString() : undefined;
+      const classrooms = await firebaseService.getClassrooms(departmentId);
+      res.json(classrooms);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to fetch classrooms from Firebase" });
+    }
+  });
+  
+  firebaseRouter.get("/classrooms/:id", async (req, res) => {
+    try {
+      const classroomId = req.params.id;
+      const classroom = await firebaseService.getClassroom(classroomId);
+      
+      if (!classroom) {
+        return res.status(404).json({ message: "Classroom not found in Firebase" });
+      }
+      
+      res.json(classroom);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to fetch classroom from Firebase" });
+    }
+  });
+  
+  firebaseRouter.post("/classrooms", async (req, res) => {
+    try {
+      const classroomData = insertClassroomSchema.parse(req.body);
+      
+      // Convert number to string for Firebase if needed
+      const newClassroom = await firebaseService.createClassroom({
+        ...classroomData,
+        departmentId: classroomData.departmentId.toString()
+      });
+      
+      res.status(201).json(newClassroom);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid classroom data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create classroom in Firebase" });
+    }
+  });
+  
+  firebaseRouter.delete("/classrooms/:id", async (req, res) => {
+    try {
+      const classroomId = req.params.id;
+      await firebaseService.deleteClassroom(classroomId);
+      res.status(204).send();
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to delete classroom from Firebase" });
+    }
+  });
+  
+  firebaseRouter.patch("/classrooms/:id", async (req, res) => {
+    try {
+      const classroomId = req.params.id;
+      const updateData = req.body;
+      
+      // Validate at least some data was provided
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ message: "No update data provided" });
+      }
+      
+      const updatedClassroom = await firebaseService.updateClassroom(classroomId, updateData);
+      
+      if (!updatedClassroom) {
+        return res.status(404).json({ message: "Classroom not found in Firebase" });
+      }
+      
+      res.json(updatedClassroom);
+    } catch (error) {
+      log(`Firebase API error: ${error}`, "routes");
+      res.status(500).json({ message: "Failed to update classroom in Firebase" });
     }
   });
   

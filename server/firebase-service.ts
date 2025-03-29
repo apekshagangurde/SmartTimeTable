@@ -31,17 +31,17 @@ const firestore = getFirestore(app);
 
 class FirebaseService {
   // Collection references
-  private departmentsRef = collection(firestore, 'departments');
-  private divisionsRef = collection(firestore, 'divisions');
-  private classroomsRef = collection(firestore, 'classrooms');
-  private subjectsRef = collection(firestore, 'subjects');
-  private teachersRef = collection(firestore, 'teachers');
-  private teacherSubjectsRef = collection(firestore, 'teacherSubjects');
-  private collegeHoursRef = collection(firestore, 'collegeHours');
-  private timetablesRef = collection(firestore, 'timetables');
-  private slotsRef = collection(firestore, 'slots');
-  private usersRef = collection(firestore, 'users');
-  private conflictsRef = collection(firestore, 'conflicts');
+  departmentsRef = collection(firestore, 'departments');
+  divisionsRef = collection(firestore, 'divisions');
+  classroomsRef = collection(firestore, 'classrooms');
+  subjectsRef = collection(firestore, 'subjects');
+  teachersRef = collection(firestore, 'teachers');
+  teacherSubjectsRef = collection(firestore, 'teacherSubjects');
+  collegeHoursRef = collection(firestore, 'collegeHours');
+  timetablesRef = collection(firestore, 'timetables');
+  slotsRef = collection(firestore, 'slots');
+  usersRef = collection(firestore, 'users');
+  conflictsRef = collection(firestore, 'conflicts');
 
   // Generic create document method with automatic ID generation
   private async createDocument(collectionRef: any, data: Record<string, any>): Promise<Record<string, any>> {
@@ -83,7 +83,7 @@ class FirebaseService {
   }
 
   // Generic update document method
-  private async updateDocument(collectionRef: any, id: string, data: Record<string, any>): Promise<Record<string, any>> {
+  async updateDocument(collectionRef: any, id: string, data: Record<string, any>): Promise<Record<string, any>> {
     try {
       const docRef = doc(collectionRef, id);
       const updateData = {
@@ -104,7 +104,7 @@ class FirebaseService {
   }
 
   // Generic delete document method
-  private async deleteDocument(collectionRef: any, id: string): Promise<void> {
+  async deleteDocument(collectionRef: any, id: string): Promise<void> {
     try {
       await deleteDoc(doc(collectionRef, id));
     } catch (error) {
@@ -213,6 +213,14 @@ class FirebaseService {
   async createClassroom(classroom: any) {
     return this.createDocument(this.classroomsRef, classroom);
   }
+  
+  async updateClassroom(id: string, data: any) {
+    return this.updateDocument(this.classroomsRef, id, data);
+  }
+  
+  async deleteClassroom(id: string) {
+    return this.deleteDocument(this.classroomsRef, id);
+  }
 
   // Subject methods
   async getSubjects(departmentId?: string) {
@@ -243,8 +251,16 @@ class FirebaseService {
     return this.createDocument(this.teachersRef, teacher);
   }
 
+  async updateTeacher(id: string, data: any) {
+    return this.updateDocument(this.teachersRef, id, data);
+  }
+  
   async updateTeacherUpsetStatus(id: string, isUpset: boolean) {
     return this.updateDocument(this.teachersRef, id, { isUpset });
+  }
+  
+  async deleteTeacher(id: string) {
+    return this.deleteDocument(this.teachersRef, id);
   }
 
   // Teacher Subject methods
