@@ -20,6 +20,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   PlusCircle, 
   Search, 
@@ -48,6 +58,47 @@ export default function Departments() {
   const getSubjectCount = (departmentId: number) => Math.floor(Math.random() * 15) + 5;
   const getClassroomCount = (departmentId: number) => Math.floor(Math.random() * 10) + 2;
   
+  // Handle department deletion
+  const [deleting, setDeleting] = useState<number | null>(null);
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+  const [departmentToDelete, setDepartmentToDelete] = useState<{id: number, name: string} | null>(null);
+  
+  const handleDeleteDepartment = async () => {
+    if (!departmentToDelete) return;
+    
+    try {
+      setDeleting(departmentToDelete.id);
+      
+      await apiRequest(
+        "DELETE", 
+        `/firebase-api/departments/${departmentToDelete.id}`
+      );
+      
+      toast({
+        title: "Department Deleted",
+        description: `${departmentToDelete.name} has been deleted successfully`
+      });
+      
+      // Close dialog and reset state
+      setShowDeleteConfirmDialog(false);
+      setDepartmentToDelete(null);
+      
+      // Refresh departments list
+      if (refetchDepartments) {
+        refetchDepartments();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete department. Please try again.",
+        variant: "destructive"
+      });
+      console.error("Failed to delete department:", error);
+    } finally {
+      setDeleting(null);
+    }
+  };
+  
   const handleAddDepartment = async () => {
     if (!newDepartmentName.trim() || !newDepartmentShortName.trim()) {
       toast({
@@ -63,7 +114,7 @@ export default function Departments() {
       
       const response = await apiRequest(
         "POST", 
-        '/api/departments', 
+        '/firebase-api/departments', 
         {
           name: newDepartmentName.trim(),
           shortName: newDepartmentShortName.trim()
@@ -186,7 +237,15 @@ export default function Departments() {
                         <Button variant="outline" size="sm">
                           <Edit className="h-4 w-4 mr-1" /> Edit
                         </Button>
-                        <Button variant="outline" size="sm" className="text-red-500">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-red-500"
+                          onClick={() => {
+                            setDepartmentToDelete({ id: department.id, name: department.name });
+                            setShowDeleteConfirmDialog(true);
+                          }}
+                        >
                           <Trash className="h-4 w-4" />
                         </Button>
                       </div>
@@ -243,6 +302,31 @@ export default function Departments() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete the department "{departmentToDelete?.name}".
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDepartmentToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteDepartment}
+              className="bg-red-500 hover:bg-red-600"
+              disabled={!!deleting}
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

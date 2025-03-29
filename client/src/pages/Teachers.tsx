@@ -25,6 +25,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormDescription,
@@ -113,13 +123,52 @@ export default function Teachers() {
     }
   };
 
+  // Handle teacher deletion
+  const [deleting, setDeleting] = useState<number | null>(null);
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+  const [teacherToDelete, setTeacherToDelete] = useState<{id: number, name: string} | null>(null);
+  
+  const handleDeleteTeacher = async () => {
+    if (!teacherToDelete) return;
+    
+    try {
+      setDeleting(teacherToDelete.id);
+      
+      await apiRequest(
+        "DELETE", 
+        `/firebase-api/teachers/${teacherToDelete.id}`
+      );
+      
+      toast({
+        title: "Teacher Deleted",
+        description: `${teacherToDelete.name} has been deleted successfully`
+      });
+      
+      // Close dialog and reset state
+      setShowDeleteConfirmDialog(false);
+      setTeacherToDelete(null);
+      
+      // Refresh teachers list
+      await refetchTeachers();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete teacher. Please try again.",
+        variant: "destructive"
+      });
+      console.error("Failed to delete teacher:", error);
+    } finally {
+      setDeleting(null);
+    }
+  };
+  
   const onSubmit = async (data: z.infer<typeof teacherFormSchema>) => {
     setIsSubmitting(true);
     try {
       // First create a user
       const userResponse = await apiRequest(
         "POST",
-        "/api/users",
+        "/firebase-api/users",
         {
           username: data.email.split('@')[0],
           password: "teacher123", // Default password
@@ -138,7 +187,7 @@ export default function Teachers() {
       });
       
       // Invalidate queries to update the UI
-      queryClient.invalidateQueries({ queryKey: ["/api/teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["/firebase-api/teachers"] });
       
       // Explicitly refetch teachers
       await refetchTeachers();
@@ -279,13 +328,20 @@ export default function Teachers() {
                           variant="outline" 
                           size="sm" 
                           className="text-red-500"
-                          onClick={() => toast({
-                            title: "Delete Teacher",
-                            description: "Teacher deletion functionality will be implemented soon.",
-                            variant: "destructive"
-                          })}
+                          onClick={() => {
+                            setTeacherToDelete({
+                              id: teacher.id,
+                              name: teacher.user?.name || teacher.name || `Teacher ${teacher.id}`
+                            });
+                            setShowDeleteConfirmDialog(true);
+                          }}
+                          disabled={deleting === teacher.id}
                         >
-                          <Trash className="h-4 w-4" />
+                          {deleting === teacher.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </TableCell>
@@ -372,6 +428,41 @@ export default function Teachers() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Teacher</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {teacherToDelete?.name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setTeacherToDelete(null);
+                setShowDeleteConfirmDialog(false);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteTeacher}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {deleting === teacherToDelete?.id ? (
+                <div className="flex items-center gap-1">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </div>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

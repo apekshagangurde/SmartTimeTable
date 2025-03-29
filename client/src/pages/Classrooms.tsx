@@ -22,13 +22,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   PlusCircle, 
   Search, 
   Calendar, 
   Edit, 
   Trash,
-  DoorOpen
+  DoorOpen,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -42,6 +53,11 @@ export default function Classrooms() {
   const [capacity, setCapacity] = useState<string>("30");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  
+  // States for classroom deletion
+  const [deleting, setDeleting] = useState<number | null>(null);
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+  const [classroomToDelete, setClassroomToDelete] = useState<{id: number, name: string} | null>(null);
   
   // Make sure we refresh classroom data when component mounts
   useEffect(() => {
@@ -64,7 +80,7 @@ export default function Classrooms() {
       
       const response = await apiRequest(
         "POST", 
-        '/api/classrooms', 
+        '/firebase-api/classrooms', 
         {
           name: newClassroomName.trim(),
           departmentId: parseInt(selectedDeptId),
@@ -96,6 +112,41 @@ export default function Classrooms() {
       console.error("Failed to add classroom:", error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Handle classroom deletion
+  const handleDeleteClassroom = async () => {
+    if (!classroomToDelete) return;
+    
+    try {
+      setDeleting(classroomToDelete.id);
+      
+      await apiRequest(
+        "DELETE", 
+        `/firebase-api/classrooms/${classroomToDelete.id}`
+      );
+      
+      toast({
+        title: "Classroom Deleted",
+        description: `${classroomToDelete.name} has been deleted successfully`
+      });
+      
+      // Close dialog and reset state
+      setShowDeleteConfirmDialog(false);
+      setClassroomToDelete(null);
+      
+      // Refresh classrooms list
+      await refetchClassrooms();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete classroom. Please try again.",
+        variant: "destructive"
+      });
+      console.error("Failed to delete classroom:", error);
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -216,13 +267,20 @@ export default function Classrooms() {
                           variant="outline" 
                           size="sm" 
                           className="text-red-500"
-                          onClick={() => toast({
-                            title: "Delete Classroom",
-                            description: "Classroom deletion functionality will be implemented soon.",
-                            variant: "destructive"
-                          })}
+                          onClick={() => {
+                            setClassroomToDelete({
+                              id: classroom.id,
+                              name: classroom.name
+                            });
+                            setShowDeleteConfirmDialog(true);
+                          }}
+                          disabled={deleting === classroom.id}
                         >
-                          <Trash className="h-4 w-4" />
+                          {deleting === classroom.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </TableCell>
@@ -300,6 +358,41 @@ export default function Classrooms() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Classroom</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {classroomToDelete?.name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setClassroomToDelete(null);
+                setShowDeleteConfirmDialog(false);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteClassroom}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {deleting === classroomToDelete?.id ? (
+                <div className="flex items-center gap-1">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </div>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
